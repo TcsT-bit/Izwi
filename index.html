@@ -11,13 +11,19 @@
   header { background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); color: white; padding: 30px 20px; text-align: center; margin: -20px -20px 20px -20px; }
   header h1 { margin: 0; font-size: 2.5rem; }
   header p { margin: 10px 0 0; opacity: 0.9; }
+  .auth-bar { background: #e2e8f0; padding: 10px 20px; margin: -20px -20px 20px -20px; text-align: right; }
+  .auth-bar button { background: #1e40af; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-left: 8px; }
+  .auth-bar button.logout { background: #64748b; }
   .error { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fca5a5; display: none; }
   .card { border: 1px solid #e2e8f0; padding: 18px; margin: 15px 0; border-radius: 12px; background: white; }
   .btn { background: #1e40af; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; }
   .btn:hover { background: #1e3a8a; }
+  .btn:disabled { background: #94a3b8; cursor: not-allowed; }
   input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; }
   .success { color: #16a34a; margin-top: 10px; }
   h3 { margin-top: 30px; }
+  .hidden { display: none; }
+  .auth-form { background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
 </style>
 </head>
 <body>
@@ -27,35 +33,52 @@
     <p>The Voice of South Africa</p>
   </header>
 
+  <div id="auth-bar" class="auth-bar">
+    <span id="user-info"></span>
+    <button id="login-btn">Login</button>
+    <button id="signup-btn">Sign Up</button>
+    <button id="logout-btn" class="logout hidden">Logout</button>
+  </div>
+
   <div id="error-box" class="error"></div>
   
   <div id="feed-tab">Loading complaints...</div>
   
-  <h3>Post a Complaint</h3>
-  <select id="category">
-    <option>Water & Electricity</option>
-    <option>Roads & Transport</option>
-    <option>Healthcare</option>
-    <option>Education</option>
-    <option>Policing & Safety</option>
-    <option>Other</option>
-  </select>
-  <select id="level">
-    <option value="local">Local</option>
-    <option value="provincial">Provincial</option>
-    <option value="national">National</option>
-  </select>
-  <input id="location" placeholder="Location/Suburb/Municipality">
-  <input id="title" placeholder="Title">
-  <textarea id="description" placeholder="Describe the issue" rows="4"></textarea>
-  <input id="name" placeholder="Your Name or Anonymous">
-  <button class="btn" onclick="postComplaint()">Post Complaint</button>
-  <p id="post-msg" class="success"></p>
+  <div id="post-section" class="hidden">
+    <h3>Post a Complaint</h3>
+    <select id="category">
+      <option>Water & Electricity</option>
+      <option>Roads & Transport</option>
+      <option>Healthcare</option>
+      <option>Education</option>
+      <option>Policing & Safety</option>
+      <option>Other</option>
+    </select>
+    <select id="level">
+      <option value="local">Local</option>
+      <option value="provincial">Provincial</option>
+      <option value="national">National</option>
+    </select>
+    <input id="location" placeholder="Location/Suburb/Municipality">
+    <input id="title" placeholder="Title">
+    <textarea id="description" placeholder="Describe the issue" rows="4"></textarea>
+    <button class="btn" onclick="postComplaint()">Post Complaint</button>
+    <p id="post-msg" class="success"></p>
+  </div>
+
+  <div id="auth-form" class="auth-form hidden">
+    <h3 id="auth-title">Login</h3>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button class="btn" id="auth-submit">Submit</button>
+    <p id="auth-msg" class="success"></p>
+  </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC_2XusB3B4EQdzn9S7BpFRw8f1xdGonhs",
@@ -68,7 +91,69 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 const complaintsCol = collection(db, 'complaints');
+
+let currentUser = null;
+let authMode = 'login';
+
+// Auth state listener
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  const userInfo = document.getElementById('user-info');
+  const loginBtn = document.getElementById('login-btn');
+  const signupBtn = document.getElementById('signup-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const postSection = document.getElementById('post-section');
+  
+  if (user) {
+    userInfo.textContent = user.email;
+    loginBtn.classList.add('hidden');
+    signupBtn.classList.add('hidden');
+    logoutBtn.classList.remove('hidden');
+    postSection.classList.remove('hidden');
+    document.getElementById('auth-form').classList.add('hidden');
+  } else {
+    userInfo.textContent = '';
+    loginBtn.classList.remove('hidden');
+    signupBtn.classList.remove('hidden');
+    logoutBtn.classList.add('hidden');
+    postSection.classList.add('hidden');
+  }
+});
+
+// Auth UI controls
+document.getElementById('login-btn').onclick = () => showAuthForm('login');
+document.getElementById('signup-btn').onclick = () => showAuthForm('signup');
+document.getElementById('logout-btn').onclick = () => signOut(auth);
+
+function showAuthForm(mode) {
+  authMode = mode;
+  document.getElementById('auth-title').textContent = mode === 'login' ? 'Login' : 'Sign Up';
+  document.getElementById('auth-submit').textContent = mode === 'login' ? 'Login' : 'Create Account';
+  document.getElementById('auth-form').classList.remove('hidden');
+  document.getElementById('auth-msg').textContent = '';
+}
+
+document.getElementById('auth-submit').onclick = async () => {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const msgEl = document.getElementById('auth-msg');
+  
+  try {
+    if (authMode === 'signup') {
+      await createUserWithEmailAndPassword(auth, email, password);
+      msgEl.textContent = 'Account created!';
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+      msgEl.textContent = 'Logged in!';
+    }
+    document.getElementById('email').value = '';
+    document.getElementById('password').value = '';
+  } catch (error) {
+    showError(error.message);
+  }
+};
 
 function showError(msg) {
   const box = document.getElementById('error-box')
@@ -102,28 +187,35 @@ onSnapshot(q, (snapshot) => {
 
 // Post complaint
 window.postComplaint = async function() {
+  if (!currentUser) {
+    showError('You must be logged in to post');
+    return;
+  }
+  
   const complaint = {
     category: document.getElementById('category').value,
     level: document.getElementById('level').value,
     location: document.getElementById('location').value,
     title: document.getElementById('title').value,
     description: document.getElementById('description').value,
-    posted_by: document.getElementById('name').value || 'Anonymous',
+    posted_by: currentUser.email,
+    uid: currentUser.uid,
     upvotes: 0,
     status: 'open',
     created_at: new Date()
   };
+  
   if (!complaint.title.trim() || !complaint.description.trim()) {
     document.getElementById('post-msg').textContent = 'Please add a title and description';
     return;
   }
+  
   try {
     await addDoc(complaintsCol, complaint);
     document.getElementById('post-msg').textContent = 'Posted successfully!';
     document.getElementById('title').value = '';
     document.getElementById('description').value = '';
     document.getElementById('location').value = '';
-    document.getElementById('name').value = '';
   } catch (error) {
     showError(error.message);
   }
