@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Izwi - Voice of SA</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
     * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, Arial; margin: 0; background: #f8fafc; color: #1e293b; }
@@ -54,10 +53,22 @@
   <p id="post-msg" class="success"></p>
 </div>
 
-<script>
-const SUPABASE_URL = 'https://erocdumxbpuhyumagbcc.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_i7ApGID-E78BFHZxPv1XSQ_KsJ1zvJ9'
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC_2XusB3B4EQdzn9S7BpFRw8f1xdGonhs",
+  authDomain: "izwi-c22f3.firebaseapp.com",
+  projectId: "izwi-c22f3",
+  storageBucket: "izwi-c22f3.firebasestorage.app",
+  messagingSenderId: "249797256658",
+  appId: "1:249797256658:web:71c792dcc5cbe81159d40b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const complaintsCol = collection(db, 'complaints');
 
 function showError(msg) {
   const box = document.getElementById('error-box')
@@ -65,39 +76,32 @@ function showError(msg) {
   box.textContent = 'Error: ' + msg
 }
 
-loadFeed()
-
-async function loadFeed() {
-  const { data, error } = await supabase
-    .from('complaints')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50)
-  
-  if (error) {
-    showError(error.message)
-    document.getElementById('feed-tab').innerHTML = ''
-    return
+// Load complaints live
+const q = query(complaintsCol, orderBy('created_at', 'desc'), limit(50));
+onSnapshot(q, (snapshot) => {
+  const feed = document.getElementById('feed-tab');
+  if (snapshot.empty) {
+    feed.innerHTML = '<p>No complaints yet. Be the first to post.</p>';
+    return;
   }
-  
-  if (!data || data.length === 0) {
-    document.getElementById('feed-tab').innerHTML = '<p>No complaints yet. Be the first to post.</p>'
-    return
-  }
-  
-  document.getElementById('feed-tab').innerHTML = data.map(c => `
+  const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  feed.innerHTML = data.map(c => `
     <div class="card">
       <div style="font-size: 12px; color: #64748b;">${c.level.toUpperCase()} • ${c.category}</div>
       <h3 style="margin: 8px 0;">${c.title}</h3>
       <p style="margin: 0;">${c.description}</p>
       <div style="margin-top: 10px; font-size: 14px; color: #64748b;">
-        ${c.location} • Posted by ${c.posted_by} • 👍 ${c.upvotes}
+        ${c.location} • Posted by ${c.posted_by} • 👍 ${c.upvotes || 0}
       </div>
     </div>
-  `).join('')
-}
+  `).join('');
+}, (error) => {
+  showError(error.message);
+  document.getElementById('feed-tab').innerHTML = '';
+});
 
-async function postComplaint() {
+// Post complaint
+window.postComplaint = async function() {
   const complaint = {
     category: document.getElementById('category').value,
     level: document.getElementById('level').value,
@@ -106,27 +110,23 @@ async function postComplaint() {
     description: document.getElementById('description').value,
     posted_by: document.getElementById('name').value || 'Anonymous',
     upvotes: 0,
-    status: 'open'
-  }
-  
+    status: 'open',
+    created_at: new Date()
+  };
   if (!complaint.title.trim() || !complaint.description.trim()) {
-    document.getElementById('post-msg').textContent = 'Please add a title and description'
-    return
+    document.getElementById('post-msg').textContent = 'Please add a title and description';
+    return;
   }
-  
-  const { error } = await supabase.from('complaints').insert(complaint)
-  
-  if (error) {
-    showError(error.message)
-    return
+  try {
+    await addDoc(complaintsCol, complaint);
+    document.getElementById('post-msg').textContent = 'Posted successfully!';
+    document.getElementById('title').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById('location').value = '';
+    document.getElementById('name').value = '';
+  } catch (error) {
+    showError(error.message);
   }
-  
-  document.getElementById('post-msg').textContent = 'Posted successfully!'
-  document.getElementById('title').value = ''
-  document.getElementById('description').value = ''
-  document.getElementById('location').value = ''
-  document.getElementById('name').value = ''
-  loadFeed()
 }
 </script>
 </body>
