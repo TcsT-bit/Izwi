@@ -46,6 +46,33 @@
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
+    .post-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+    .like-btn, .comment-btn {
+      background: none;
+      color: #0066CC;
+      border: none;
+      width: auto;
+      padding: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .comment-section {
+      margin-top: 10px;
+      display: none;
+    }
+    .comment {
+      background: #f5f5f5;
+      padding: 8px;
+      border-radius: 5px;
+      margin: 5px 0;
+      font-size: 14px;
+    }
     label {
       margin-right: 15px;
       font-weight: normal;
@@ -53,11 +80,14 @@
     h1, h3 {
       margin: 10px 0;
     }
+    .flag {
+      font-size: 28px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Izwi</h1>
+    <h1>Izwi <span class="flag">🇿🇦</span></h1>
     <p>The voice of South Africa</p>
 
     <div id="authSection">
@@ -79,6 +109,8 @@
         <option value="Load shedding">Load shedding</option>
         <option value="Water">Water</option>
         <option value="Roads">Roads</option>
+        <option value="Healthcare">Healthcare</option>
+        <option value="Safety & Security">Safety & Security</option>
         <option value="Other">Other</option>
       </select>
       <input id="location" type="text" placeholder="Location/Suburb">
@@ -94,7 +126,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Your Firebase config
 const firebaseConfig = {
@@ -165,7 +197,10 @@ document.getElementById('postBtn').onclick = async () => {
     description: document.getElementById('desc').value,
     author: authorName,
     authorId: user.uid,
-    createdAt: serverTimestamp()
+    createdAt: serverTimestamp(),
+    likes: 0,
+    likedBy: [],
+    comments: []
   });
   
   alert("Posted!");
@@ -178,17 +213,81 @@ const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
 onSnapshot(q, (snapshot) => {
   const postsDiv = document.getElementById('posts');
   postsDiv.innerHTML = '';
-  snapshot.forEach(doc => {
-    const d = doc.data();
+  snapshot.forEach(docSnap => {
+    const d = docSnap.data();
+    const id = docSnap.id;
+    
+    const commentsHTML = (d.comments || []).map(c => 
+      `<div class="comment"><strong>${c.author}:</strong> ${c.text}</div>`
+    ).join('');
+    
     postsDiv.innerHTML += `
       <div class="post-card">
         <strong>${d.title}</strong> - ${d.type}<br>
         ${d.description}<br>
         <small>Posted by ${d.author} • ${d.location}</small>
+        
+        <div class="post-actions">
+          <button class="like-btn" onclick="likePost('${id}')">👍 Like (${d.likes || 0})</button>
+          <button class="comment-btn" onclick="toggleComments('${id}')">💬 Comment</button>
+        </div>
+        
+        <div class="comment-section" id="comments-${id}">
+          ${commentsHTML}
+          <input type="text" id="comment-input-${id}" placeholder="Write a comment...">
+          <button onclick="addComment('${id}')">Post Comment</button>
+        </div>
       </div>
     `;
   });
 });
+
+// Like a post
+window.likePost = async (postId) => {
+  const user = auth.currentUser;
+  if (!user) return alert("Log in to like posts");
+  
+  const postRef = doc(db, "complaints", postId);
+  const postSnap = await getDoc(postRef);
+  const likedBy = postSnap.data().likedBy || [];
+  
+  if (likedBy.includes(user.uid)) {
+    alert("You've already liked this");
+    return;
+  }
+  
+  await updateDoc(postRef, {
+    likes: increment(1),
+    likedBy: arrayUnion(user.uid)
+  });
+};
+
+// Toggle comments
+window.toggleComments = (postId) => {
+  const section = document.getElementById(`comments-${postId}`);
+  section.style.display = section.style.display === 'none' ? 'block' : 'none';
+};
+
+// Add comment
+window.addComment = async (postId) => {
+  const user = auth.currentUser;
+  if (!user) return alert("Log in to comment");
+  
+  const input = document.getElementById(`comment-input-${postId}`);
+  const text = input.value.trim();
+  if (!text) return;
+  
+  const postRef = doc(db, "complaints", postId);
+  await updateDoc(postRef, {
+    comments: arrayUnion({
+      author: user.displayName || user.email,
+      text: text,
+      createdAt: new Date()
+    })
+  });
+  
+  input.value = '';
+};
 </script>
 </body>
 </html>
