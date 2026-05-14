@@ -1,289 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Izwi - The voice of South Africa</title>
-  <style>
-    body {
-      background: linear-gradient(135deg, #007A4D 0%, #FFB612 20%, #000 40%, #0066CC 60%, #FFFFFF 80%, #DE3831 100%);
-      background-attachment: fixed;
-      min-height: 100vh;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 20px;
-      border-radius: 10px;
-    }
-    input, textarea, select, button {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    button {
-      background: #0066CC;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover { opacity: 0.9; }
-    .post-card {
-      background: white;
-      padding: 15px;
-      margin: 10px 0;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    .post-actions {
-      display: flex;
-      gap: 15px;
-      margin-top: 10px;
-      border-top: 1px solid #eee;
-      padding-top: 10px;
-    }
-    .like-btn, .comment-btn {
-      background: none;
-      color: #0066CC;
-      border: none;
-      width: auto;
-      padding: 5px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .comment-section {
-      margin-top: 10px;
-      display: none;
-    }
-    .comment {
-      background: #f5f5f5;
-      padding: 8px;
-      border-radius: 5px;
-      margin: 5px 0;
-      font-size: 14px;
-    }
-    label { margin-right: 15px; font-weight: normal; }
-    h1, h3 { margin: 10px 0; }
-    .flag { font-size: 28px; }
-    .error { color: red; font-weight: bold; }
-  </style>
+  <title>Test Firestore</title>
 </head>
 <body>
-  <div class="container">
-    <h1>Izwi <span class="flag">🇿🇦</span></h1>
-    <p>The voice of South Africa</p>
+  <input id="text" placeholder="Write something">
+  <button onclick="post()">Post</button>
 
-    <div id="authSection">
-      <input id="email" type="email" placeholder="Email">
-      <input id="password" type="password" placeholder="Password">
-      <input id="displayName" type="text" placeholder="Display Name - leave blank for Anonymous">
-      <button id="loginBtn">Login</button>
-      <button id="signupBtn">Sign Up</button>
-    </div>
+  <script type="module">
+    // 1. Import Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    <div id="postSection" style="display:none;">
-      <p>Logged in as: <span id="userEmail"></span> <button id="logoutBtn" style="width:auto; padding:5px 15px;">Logout</button></p>
+    // 2. Paste your config here from Firebase > Project settings > Web app
+    const firebaseConfig = {
+      apiKey: "AIza...",
+      authDomain: "your-project.firebaseapp.com",
+      projectId: "your-project",
+      storageBucket: "your-project.appspot.com",
+      messagingSenderId: "123",
+      appId: "1:123:web:abc"
+    };
+
+    // 3. Connect
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 4. Post function
+    window.post = async function() {
+      const text = document.getElementById("text").value;
+      if (!text) return alert("Type something first");
       
-      <p><strong>Post as:</strong></p>
-      <label><input type="radio" name="postAs" value="name" checked> Your Name</label>
-      <label><input type="radio" name="postAs" value="anonymous"> Anonymous</label>
-      
-      <select id="postType">
-        <option value="Load shedding">Load shedding</option>
-        <option value="Water">Water</option>
-        <option value="Roads">Roads</option>
-        <option value="Healthcare">Healthcare</option>
-        <option value="Safety & Security">Safety & Security</option>
-        <option value="Other">Other</option>
-      </select>
-      <input id="location" type="text" placeholder="Location/Suburb">
-      <input id="title" type="text" placeholder="Title">
-      <textarea id="desc" placeholder="Describe the issue" rows="4"></textarea>
-      <button id="postBtn">Post Complaint</button>
-    </div>
-
-    <h3>Recent Complaints</h3>
-    <div id="posts">Loading...</div>
-  </div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyC_2XusB3B4EQdzn9S7BpFRw8f1xdGonhs",
-  authDomain: "izwi-c22f3.firebaseapp.com",
-  projectId: "izwi-c22f3",
-  storageBucket: "izwi-c22f3.firebasestorage.app",
-  messagingSenderId: "249797256658",
-  appId: "1:249797256658:web:71c792dcc5cbe81159d40b"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Auth state
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    document.getElementById('userEmail').innerText = user.displayName || user.email;
-    document.getElementById('authSection').style.display = 'none';
-    document.getElementById('postSection').style.display = 'block';
-  } else {
-    document.getElementById('authSection').style.display = 'block';
-    document.getElementById('postSection').style.display = 'none';
-  }
-});
-
-// Login
-document.getElementById('loginBtn').onclick = async () => {
-  try {
-    await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
-  } catch (e) {
-    alert(e.message);
-  }
-};
-
-// Signup
-document.getElementById('signupBtn').onclick = async () => {
-  try {
-    const userCred = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
-    await updateProfile(userCred.user, { displayName: document.getElementById('displayName').value || 'Anonymous' });
-  } catch (e) {
-    alert(e.message);
-  }
-};
-
-document.getElementById('logoutBtn').onclick = () => signOut(auth);
-
-// Post complaint
-document.getElementById('postBtn').onclick = async () => {
-  const user = auth.currentUser;
-  if (!user) return alert("Log in first");
-
-  const postAs = document.querySelector('input[name="postAs"]:checked').value;
-  const authorName = postAs === 'anonymous' ? 'Anonymous' : (user.displayName || user.email);
-
-  try {
-    await addDoc(collection(db, "complaints"), {
-      type: document.getElementById('postType').value,
-      location: document.getElementById('location').value,
-      title: document.getElementById('title').value,
-      description: document.getElementById('desc').value,
-      author: authorName,
-      authorId: user.uid,
-      createdAt: serverTimestamp(),
-      likes: 0,
-      likedBy: [],
-      comments: []
-    });
-    alert("Posted!");
-    document.getElementById('title').value = '';
-    document.getElementById('desc').value = '';
-  } catch (e) {
-    alert("Error posting: " + e.message);
-  }
-};
-
-// Load posts with error handling
-const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
-onSnapshot(q, 
-  (snapshot) => {
-    const postsDiv = document.getElementById('posts');
-    postsDiv.innerHTML = '';
-    if (snapshot.empty) {
-      postsDiv.innerHTML = '<p>No posts yet. Be the first to post!</p>';
-      return;
+      try {
+        await addDoc(collection(db, "complaints"), {
+          text: text,
+          createdAt: serverTimestamp()
+        });
+        alert("Posted! Check Firebase Data tab");
+        document.getElementById("text").value = "";
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
     }
-    snapshot.forEach(docSnap => {
-      const d = docSnap.data();
-      const id = docSnap.id;
-      
-      const commentsHTML = (d.comments || []).map(c => 
-        `<div class="comment"><strong>${c.author}:</strong> ${c.text}</div>`
-      ).join('');
-      
-      postsDiv.innerHTML += `
-        <div class="post-card">
-          <strong>${d.title}</strong> - ${d.type}<br>
-          ${d.description}<br>
-          <small>Posted by ${d.author} • ${d.location}</small>
-          
-          <div class="post-actions">
-            <button class="like-btn" onclick="likePost('${id}')">👍 Like (${d.likes || 0})</button>
-            <button class="comment-btn" onclick="toggleComments('${id}')">💬 Comment (${(d.comments || []).length})</button>
-          </div>
-          
-          <div class="comment-section" id="comments-${id}">
-            ${commentsHTML}
-            <input type="text" id="comment-input-${id}" placeholder="Write a comment...">
-            <button onclick="addComment('${id}')">Post Comment</button>
-          </div>
-        </div>
-      `;
-    });
-  },
-  (error) => {
-    console.error("Firestore error:", error);
-    document.getElementById('posts').innerHTML = `<p class="error">Error loading posts: ${error.message}</p>`;
-  }
-);
-
-// Like a post
-window.likePost = async (postId) => {
-  const user = auth.currentUser;
-  if (!user) return alert("Log in to like posts");
-  
-  const postRef = doc(db, "complaints", postId);
-  const postSnap = await getDoc(postRef);
-  if (!postSnap.exists()) return;
-  
-  if ((postSnap.data().likedBy || []).includes(user.uid)) {
-    return alert("You've already liked this");
-  }
-  
-  await updateDoc(postRef, {
-    likes: increment(1),
-    likedBy: arrayUnion(user.uid)
-  });
-};
-
-// Toggle comments
-window.toggleComments = (postId) => {
-  const section = document.getElementById(`comments-${postId}`);
-  section.style.display = section.style.display === 'block' ? 'none' : 'block';
-};
-
-// Add comment
-window.addComment = async (postId) => {
-  const user = auth.currentUser;
-  if (!user) return alert("Log in to comment");
-  
-  const input = document.getElementById(`comment-input-${postId}`);
-  const text = input.value.trim();
-  if (!text) return;
-  
-  await updateDoc(doc(db, "complaints", postId), {
-    comments: arrayUnion({
-      author: user.displayName || user.email,
-      text: text,
-      createdAt: new Date().toISOString()
-    })
-  });
-  
-  input.value = '';
-};
-</script>
+  </script>
 </body>
 </html>
