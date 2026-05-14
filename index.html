@@ -8,11 +8,9 @@
   <button onclick="post()">Post</button>
 
   <script type="module">
-    // 1. Import Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // 2. Paste your config here from Firebase > Project settings > Web app
     const firebaseConfig = {
       apiKey: "AIza...",
       authDomain: "your-project.firebaseapp.com",
@@ -22,11 +20,9 @@
       appId: "1:123:web:abc"
     };
 
-    // 3. Connect
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 4. Post function
     window.post = async function() {
       const text = document.getElementById("text").value;
       if (!text) return alert("Type something first");
