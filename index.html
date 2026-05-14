@@ -142,26 +142,22 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Keep login state on refresh
+// Show posts section when logged in
 onAuthStateChanged(auth, (user) => {
   if (user) {
     document.getElementById('userEmail').innerText = user.displayName || user.email;
-    document.getElementById('logoutBtn').style.display = 'inline-block';
     document.getElementById('authSection').style.display = 'none';
     document.getElementById('postSection').style.display = 'block';
   } else {
     document.getElementById('authSection').style.display = 'block';
     document.getElementById('postSection').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'none';
   }
 });
 
 // Login
 document.getElementById('loginBtn').onclick = async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
   } catch (e) {
     alert(e.message);
   }
@@ -169,12 +165,9 @@ document.getElementById('loginBtn').onclick = async () => {
 
 // Signup
 document.getElementById('signupBtn').onclick = async () => {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  const displayName = document.getElementById('displayName').value || 'Anonymous';
   try {
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(userCred.user, { displayName: displayName });
+    const userCred = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+    await updateProfile(userCred.user, { displayName: document.getElementById('displayName').value || 'Anonymous' });
   } catch (e) {
     alert(e.message);
   }
@@ -208,7 +201,7 @@ document.getElementById('postBtn').onclick = async () => {
   document.getElementById('desc').value = '';
 };
 
-// Load posts in real time
+// Load posts live
 const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
 onSnapshot(q, (snapshot) => {
   const postsDiv = document.getElementById('posts');
@@ -249,14 +242,10 @@ window.likePost = async (postId) => {
   
   const postRef = doc(db, "complaints", postId);
   const postSnap = await getDoc(postRef);
+  if (!postSnap.exists()) return;
   
-  if (!postSnap.exists()) return alert("Post not found");
-  
-  const likedBy = postSnap.data().likedBy || [];
-  
-  if (likedBy.includes(user.uid)) {
-    alert("You've already liked this");
-    return;
+  if ((postSnap.data().likedBy || []).includes(user.uid)) {
+    return alert("You've already liked this");
   }
   
   await updateDoc(postRef, {
@@ -280,8 +269,7 @@ window.addComment = async (postId) => {
   const text = input.value.trim();
   if (!text) return;
   
-  const postRef = doc(db, "complaints", postId);
-  await updateDoc(postRef, {
+  await updateDoc(doc(db, "complaints", postId), {
     comments: arrayUnion({
       author: user.displayName || user.email,
       text: text,
