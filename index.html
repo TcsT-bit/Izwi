@@ -1,20 +1,190 @@
-<div id="authSection">
-  <input id="email" type="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <input id="displayName" type="text" placeholder="Display Name - leave blank for Anonymous">
-  <button id="loginBtn">Login</button>
-  <button id="signupBtn">Sign Up</button>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Izwi - The voice of South Africa</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #007A4D 0%, #FFB612 20%, #000 40%, #0066CC 60%, #FFFFFF 80%, #DE3831 100%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 10px;
+    }
+    input, textarea, select, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #0066CC;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .post-card {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    label {
+      margin-right: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Izwi</h1>
+    <p>The voice of South Africa</p>
 
-<div id="postSection" style="display:none;">
-  <p>Logged in as: <span id="userEmail"></span> <button id="logoutBtn">Logout</button></p>
-  
-  <p>Post as:</p>
-  <label><input type="radio" name="postAs" value="name" checked> Your Name</label>
-  <label><input type="radio" name="postAs" value="anonymous"> Anonymous</label>
-  
-  <!-- your existing post inputs here -->
-  <button id="postBtn">Post Complaint</button>
-</div>
+    <div id="authSection">
+      <input id="email" type="email" placeholder="Email">
+      <input id="password" type="password" placeholder="Password">
+      <input id="displayName" type="text" placeholder="Display Name - leave blank for Anonymous">
+      <button id="loginBtn">Login</button>
+      <button id="signupBtn">Sign Up</button>
+    </div>
 
-<div id="posts"></div>
+    <div id="postSection" style="display:none;">
+      <p>Logged in as: <span id="userEmail"></span> <button id="logoutBtn" style="width:auto;">Logout</button></p>
+      
+      <p><strong>Post as:</strong></p>
+      <label><input type="radio" name="postAs" value="name" checked> Your Name</label>
+      <label><input type="radio" name="postAs" value="anonymous"> Anonymous</label>
+      
+      <select id="postType">
+        <option value="Load shedding">Load shedding</option>
+        <option value="Water">Water</option>
+        <option value="Roads">Roads</option>
+        <option value="Other">Other</option>
+      </select>
+      <input id="location" type="text" placeholder="Location/Suburb">
+      <input id="title" type="text" placeholder="Title">
+      <textarea id="desc" placeholder="Describe the issue" rows="4"></textarea>
+      <button id="postBtn">Post Complaint</button>
+    </div>
+
+    <h3>Recent Complaints</h3>
+    <div id="posts"></div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 1. REPLACE THIS with your Firebase config
+// Get it from Firebase Console > Project Settings > Web app > Config
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// 2. Keep login state on refresh
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    document.getElementById('userEmail').innerText = user.displayName || user.email;
+    document.getElementById('logoutBtn').style.display = 'inline-block';
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('postSection').style.display = 'block';
+  } else {
+    document.getElementById('authSection').style.display = 'block';
+    document.getElementById('postSection').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'none';
+  }
+});
+
+// 3. Login
+document.getElementById('loginBtn').onclick = async () => {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+// 4. Signup
+document.getElementById('signupBtn').onclick = async () => {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const displayName = document.getElementById('displayName').value || 'Anonymous';
+  try {
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCred.user, { displayName: displayName });
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+// 5. Post complaint
+document.getElementById('postBtn').onclick = async () => {
+  const user = auth.currentUser;
+  if (!user) return alert("Log in first");
+
+  const postAs = document.querySelector('input[name="postAs"]:checked').value;
+  const authorName = postAs === 'anonymous' ? 'Anonymous' : (user.displayName || user.email);
+
+  await addDoc(collection(db, "complaints"), {
+    type: document.getElementById('postType').value,
+    location: document.getElementById('location').value,
+    title: document.getElementById('title').value,
+    description: document.getElementById('desc').value,
+    author: authorName,
+    authorId: user.uid,
+    createdAt: serverTimestamp()
+  });
+  
+  alert("Posted!");
+  document.getElementById('title').value = '';
+  document.getElementById('desc').value = '';
+};
+
+// 6. Load posts
+const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
+onSnapshot(q, (snapshot) => {
+  const postsDiv = document.getElementById('posts');
+  postsDiv.innerHTML = '';
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    postsDiv.innerHTML += `
+      <div class="post-card">
+        <strong>${d.title}</strong> - ${d.type}<br>
+        ${d.description}<br>
+        <small>Posted by ${d.author} • ${d.location}</small>
+      </div>
+    `;
+  });
+});
+</script>
+</body>
+</html>
