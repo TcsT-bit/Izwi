@@ -36,9 +36,7 @@
       cursor: pointer;
       font-weight: bold;
     }
-    button:hover {
-      opacity: 0.9;
-    }
+    button:hover { opacity: 0.9; }
     .post-card {
       background: white;
       padding: 15px;
@@ -73,16 +71,10 @@
       margin: 5px 0;
       font-size: 14px;
     }
-    label {
-      margin-right: 15px;
-      font-weight: normal;
-    }
-    h1, h3 {
-      margin: 10px 0;
-    }
-    .flag {
-      font-size: 28px;
-    }
+    label { margin-right: 15px; font-weight: normal; }
+    h1, h3 { margin: 10px 0; }
+    .flag { font-size: 28px; }
+    .error { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -120,7 +112,7 @@
     </div>
 
     <h3>Recent Complaints</h3>
-    <div id="posts"></div>
+    <div id="posts">Loading...</div>
   </div>
 
 <script type="module">
@@ -128,7 +120,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Your Firebase config
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC_2XusB3B4EQdzn9S7BpFRw8f1xdGonhs",
   authDomain: "izwi-c22f3.firebaseapp.com",
@@ -142,7 +134,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Show posts section when logged in
+// Auth state
 onAuthStateChanged(auth, (user) => {
   if (user) {
     document.getElementById('userEmail').innerText = user.displayName || user.email;
@@ -183,57 +175,70 @@ document.getElementById('postBtn').onclick = async () => {
   const postAs = document.querySelector('input[name="postAs"]:checked').value;
   const authorName = postAs === 'anonymous' ? 'Anonymous' : (user.displayName || user.email);
 
-  await addDoc(collection(db, "complaints"), {
-    type: document.getElementById('postType').value,
-    location: document.getElementById('location').value,
-    title: document.getElementById('title').value,
-    description: document.getElementById('desc').value,
-    author: authorName,
-    authorId: user.uid,
-    createdAt: serverTimestamp(),
-    likes: 0,
-    likedBy: [],
-    comments: []
-  });
-  
-  alert("Posted!");
-  document.getElementById('title').value = '';
-  document.getElementById('desc').value = '';
+  try {
+    await addDoc(collection(db, "complaints"), {
+      type: document.getElementById('postType').value,
+      location: document.getElementById('location').value,
+      title: document.getElementById('title').value,
+      description: document.getElementById('desc').value,
+      author: authorName,
+      authorId: user.uid,
+      createdAt: serverTimestamp(),
+      likes: 0,
+      likedBy: [],
+      comments: []
+    });
+    alert("Posted!");
+    document.getElementById('title').value = '';
+    document.getElementById('desc').value = '';
+  } catch (e) {
+    alert("Error posting: " + e.message);
+  }
 };
 
-// Load posts live
+// Load posts with error handling
 const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
-onSnapshot(q, (snapshot) => {
-  const postsDiv = document.getElementById('posts');
-  postsDiv.innerHTML = '';
-  snapshot.forEach(docSnap => {
-    const d = docSnap.data();
-    const id = docSnap.id;
-    
-    const commentsHTML = (d.comments || []).map(c => 
-      `<div class="comment"><strong>${c.author}:</strong> ${c.text}</div>`
-    ).join('');
-    
-    postsDiv.innerHTML += `
-      <div class="post-card">
-        <strong>${d.title}</strong> - ${d.type}<br>
-        ${d.description}<br>
-        <small>Posted by ${d.author} • ${d.location}</small>
-        
-        <div class="post-actions">
-          <button class="like-btn" onclick="likePost('${id}')">👍 Like (${d.likes || 0})</button>
-          <button class="comment-btn" onclick="toggleComments('${id}')">💬 Comment (${(d.comments || []).length})</button>
+onSnapshot(q, 
+  (snapshot) => {
+    const postsDiv = document.getElementById('posts');
+    postsDiv.innerHTML = '';
+    if (snapshot.empty) {
+      postsDiv.innerHTML = '<p>No posts yet. Be the first to post!</p>';
+      return;
+    }
+    snapshot.forEach(docSnap => {
+      const d = docSnap.data();
+      const id = docSnap.id;
+      
+      const commentsHTML = (d.comments || []).map(c => 
+        `<div class="comment"><strong>${c.author}:</strong> ${c.text}</div>`
+      ).join('');
+      
+      postsDiv.innerHTML += `
+        <div class="post-card">
+          <strong>${d.title}</strong> - ${d.type}<br>
+          ${d.description}<br>
+          <small>Posted by ${d.author} • ${d.location}</small>
+          
+          <div class="post-actions">
+            <button class="like-btn" onclick="likePost('${id}')">👍 Like (${d.likes || 0})</button>
+            <button class="comment-btn" onclick="toggleComments('${id}')">💬 Comment (${(d.comments || []).length})</button>
+          </div>
+          
+          <div class="comment-section" id="comments-${id}">
+            ${commentsHTML}
+            <input type="text" id="comment-input-${id}" placeholder="Write a comment...">
+            <button onclick="addComment('${id}')">Post Comment</button>
+          </div>
         </div>
-        
-        <div class="comment-section" id="comments-${id}">
-          ${commentsHTML}
-          <input type="text" id="comment-input-${id}" placeholder="Write a comment...">
-          <button onclick="addComment('${id}')">Post Comment</button>
-        </div>
-      </div>
-    `;
-  });
-});
+      `;
+    });
+  },
+  (error) => {
+    console.error("Firestore error:", error);
+    document.getElementById('posts').innerHTML = `<p class="error">Error loading posts: ${error.message}</p>`;
+  }
+);
 
 // Like a post
 window.likePost = async (postId) => {
