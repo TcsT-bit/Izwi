@@ -139,4 +139,56 @@ document.getElementById('loginBtn').onclick = async () => {
 document.getElementById('signupBtn').onclick = async () => {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
-  const displayName = document.getElementById('displayName').value ||
+  const displayName = document.getElementById('displayName').value || 'Anonymous';
+  try {
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCred.user, { displayName: displayName });
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+// Post complaint
+document.getElementById('postBtn').onclick = async () => {
+  const user = auth.currentUser;
+  if (!user) return alert("Log in first");
+
+  const postAs = document.querySelector('input[name="postAs"]:checked').value;
+  const authorName = postAs === 'anonymous' ? 'Anonymous' : (user.displayName || user.email);
+
+  await addDoc(collection(db, "complaints"), {
+    type: document.getElementById('postType').value,
+    location: document.getElementById('location').value,
+    title: document.getElementById('title').value,
+    description: document.getElementById('desc').value,
+    author: authorName,
+    authorId: user.uid,
+    createdAt: serverTimestamp()
+  });
+  
+  alert("Posted!");
+  document.getElementById('title').value = '';
+  document.getElementById('desc').value = '';
+};
+
+// Load posts
+const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
+onSnapshot(q, (snapshot) => {
+  const postsDiv = document.getElementById('posts');
+  postsDiv.innerHTML = '';
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    postsDiv.innerHTML += `
+      <div class="post-card">
+        <strong>${d.title}</strong> - ${d.type}<br>
+        ${d.description}<br>
+        <small>Posted by ${d.author} • ${d.location}</small>
+      </div>
+    `;
+  });
+});
+</script>
+</body>
+</html>
