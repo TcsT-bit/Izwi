@@ -13,7 +13,7 @@
       font-family: Arial, sans-serif;
       padding: 20px;
     }
-  .container {
+.container {
       max-width: 800px;
       margin: 0 auto;
       background: rgba(255, 255, 255, 0.95);
@@ -37,13 +37,13 @@
       font-weight: bold;
     }
     button:hover { opacity: 0.9; }
-  .app-tabs {
+.app-tabs {
       display: flex;
       gap: 10px;
       margin-bottom: 20px;
       border-bottom: 2px solid #ddd;
     }
-  .app-tab {
+.app-tab {
       padding: 12px 24px;
       cursor: pointer;
       border: none;
@@ -52,35 +52,34 @@
       font-weight: bold;
       color: #555;
     }
-  .app-tab.active {
+.app-tab.active {
       border-bottom: 3px solid #0066CC;
       color: #0066CC;
     }
-  .app-section { display: none; }
-  .app-section.active { display: block; }
-  .hidden { display: none; }
+.app-section { display: none; }
+.app-section.active { display: block; }
+.hidden { display: none; }
 
-    /* Izwi styles */
-  .post-card {
+.post-card {
       background: white;
       padding: 15px;
       margin: 10px 0;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-  .post-card img {
+.post-card img {
       max-width: 100%;
       margin-top: 10px;
       border-radius: 5px;
     }
-  .post-actions {
+.post-actions {
       display: flex;
       gap: 15px;
       margin-top: 10px;
       border-top: 1px solid #eee;
       padding-top: 10px;
     }
-  .like-btn,.comment-btn {
+.like-btn,.comment-btn {
       background: none;
       color: #0066CC;
       border: none;
@@ -89,8 +88,8 @@
       cursor: pointer;
       font-size: 14px;
     }
-  .comment-section { margin-top: 10px; display: none; }
-  .comment {
+.comment-section { margin-top: 10px; display: none; }
+.comment {
       background: #f5f5f5;
       padding: 8px;
       border-radius: 5px;
@@ -108,7 +107,7 @@
       font-size: 14px;
       white-space: pre-wrap;
     }
-  .solution-box {
+.solution-box {
       background: #e8f5e9;
       border-left: 4px solid #4caf50;
       padding: 10px;
@@ -116,14 +115,13 @@
       border-radius: 4px;
     }
 
-    /* Mzansi Works styles */
-  .mw-tabs { display: flex; gap: 10px; margin: 20px 0; border-bottom: 2px solid #eee; }
-  .mw-tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; }
-  .mw-tab.active { border-bottom: 3px solid #1a5d1a; font-weight: bold; color: #1a5d1a; }
-  .job-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
-  .mw-btn { background: #1a5d1a; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
-  .mw-btn:hover { background: #134813; }
-  .auth-box { max-width: 400px; margin: 20px auto; }
+.mw-tabs { display: flex; gap: 10px; margin: 20px 0; border-bottom: 2px solid #eee; }
+.mw-tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; }
+.mw-tab.active { border-bottom: 3px solid #1a5d1a; font-weight: bold; color: #1a5d1a; }
+.job-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+.mw-btn { background: #1a5d1a; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+.mw-btn:hover { background: #134813; }
+.auth-box { max-width: 400px; margin: 20px auto; }
   </style>
 </head>
 <body>
@@ -167,8 +165,8 @@
         <input id="location" type="text" placeholder="Location/Suburb">
         <input id="title" type="text" placeholder="Title">
         <textarea id="desc" placeholder="Describe the issue" rows="4"></textarea>
-        <input id="problem" type="text" placeholder="Problem" value="izwi-c22f3">
-        <input id="solution" type="text" placeholder="Solution" value="Mzansi Work">
+        <input id="problem" type="text" placeholder="Problem">
+        <input id="solution" type="text" placeholder="Solution">
         <input id="fileInput" type="file" accept="image/*,application/pdf">
         <button id="postBtn">Post Complaint</button>
       </div>
@@ -284,11 +282,17 @@ document.getElementById('loginBtn').onclick = async () => {
 };
 
 document.getElementById('signupBtn').onclick = async () => {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
   try {
-    const userCred = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCred.user, { displayName: document.getElementById('displayName').value || 'Anonymous' });
   } catch (e) {
-    showError("Signup failed: " + e.message);
+    if (e.code === 'auth/email-already-in-use') {
+      showError("This email is already registered. Try logging in instead.");
+    } else {
+      showError("Signup failed: " + e.message);
+    }
   }
 };
 
@@ -331,6 +335,8 @@ document.getElementById('postBtn').onclick = async () => {
     document.getElementById('title').value = '';
     document.getElementById('desc').value = '';
     document.getElementById('location').value = '';
+    document.getElementById('problem').value = '';
+    document.getElementById('solution').value = '';
     document.getElementById('fileInput').value = '';
   } catch (e) {
     showError("Error posting: " + e.message);
@@ -357,7 +363,7 @@ onSnapshot(q,
       const d = docSnap.data();
       const id = docSnap.id;
       const date = (d.createdAt && typeof d.createdAt.toDate === 'function')
-    ? d.createdAt.toDate().toLocaleString()
+  ? d.createdAt.toDate().toLocaleString()
         : "Just now";
 
       const commentsHTML = (d.comments || []).map(c =>
@@ -366,14 +372,14 @@ onSnapshot(q,
 
       const fileHTML = d.fileURL?
         (d.fileURL.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-    ? `<img src="${d.fileURL}" alt="attachment">`
+  ? `<img src="${d.fileURL}" alt="attachment">`
           : `<a href="${d.fileURL}" target="_blank">View attachment</a>`)
         : '';
 
       html += `
         <div class="post-card">
           <strong>${d.title || ''}</strong> - ${d.type || ''}<br>
-          <strong>Problem:</strong> ${d.problem || 'N/A'}<br>
+          ${d.problem? `<strong>Problem:</strong> ${d.problem}<br>` : ''}
           ${d.description || ''}<br>
           ${fileHTML}
           ${d.solution? `<div class="solution-box"><strong>Solution:</strong> ${d.solution}</div>` : ''}
@@ -459,7 +465,16 @@ window.mwSignUp = async () => {
     await createUserWithEmailAndPassword(auth, email, password)
     alert('Account created! You are now logged in.')
   } catch (e) {
-    alert(e.message)
+    if (e.code === 'auth/email-already-in-use') {
+      alert('This email is already registered. Logging you in instead.');
+      try {
+        await signInWithEmailAndPassword(auth, email, password)
+      } catch (err) {
+        alert(err.message)
+      }
+    } else {
+      alert(e.message)
+    }
   }
 }
 
