@@ -13,7 +13,7 @@
       font-family: Arial, sans-serif;
       padding: 20px;
     }
-    .container {
+   .container {
       max-width: 600px;
       margin: 0 auto;
       background: rgba(255, 255, 255, 0.95);
@@ -37,21 +37,26 @@
       font-weight: bold;
     }
     button:hover { opacity: 0.9; }
-    .post-card {
+   .post-card {
       background: white;
       padding: 15px;
       margin: 10px 0;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-    .post-actions {
+   .post-card img {
+      max-width: 100%;
+      margin-top: 10px;
+      border-radius: 5px;
+    }
+   .post-actions {
       display: flex;
       gap: 15px;
       margin-top: 10px;
       border-top: 1px solid #eee;
       padding-top: 10px;
     }
-    .like-btn, .comment-btn {
+   .like-btn,.comment-btn {
       background: none;
       color: #0066CC;
       border: none;
@@ -60,11 +65,11 @@
       cursor: pointer;
       font-size: 14px;
     }
-    .comment-section {
+   .comment-section {
       margin-top: 10px;
       display: none;
     }
-    .comment {
+   .comment {
       background: #f5f5f5;
       padding: 8px;
       border-radius: 5px;
@@ -87,7 +92,7 @@
 <body>
   <div class="container">
     <div id="errorBanner"></div>
-    
+
     <h1>Izwi 🇿🇦</h1>
     <p>The voice of South Africa</p>
 
@@ -101,11 +106,11 @@
 
     <div id="postSection" style="display:none;">
       <p>Logged in as: <span id="userEmail"></span> <button id="logoutBtn" style="width:auto; padding:5px 15px;">Logout</button></p>
-      
+
       <p><strong>Post as:</strong></p>
       <label><input type="radio" name="postAs" value="name" checked> Your Name</label>
       <label><input type="radio" name="postAs" value="anonymous"> Anonymous</label>
-      
+
       <select id="postType">
         <option value="Load shedding">Load shedding</option>
         <option value="Water">Water</option>
@@ -117,6 +122,7 @@
       <input id="location" type="text" placeholder="Location/Suburb">
       <input id="title" type="text" placeholder="Title">
       <textarea id="desc" placeholder="Describe the issue" rows="4"></textarea>
+      <input id="fileInput" type="file" accept="image/*,application/pdf">
       <button id="postBtn">Post Complaint</button>
     </div>
 
@@ -129,6 +135,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 function showError(msg) {
   const banner = document.getElementById('errorBanner');
@@ -156,6 +163,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -192,14 +200,24 @@ document.getElementById('postBtn').onclick = async () => {
   if (!user) return showError("Log in first");
 
   const postAs = document.querySelector('input[name="postAs"]:checked').value;
-  const authorName = postAs === 'anonymous' ? 'Anonymous' : (user.displayName || user.email);
+  const authorName = postAs === 'anonymous'? 'Anonymous' : (user.displayName || user.email);
 
   try {
+    const file = document.getElementById('fileInput').files[0];
+    let fileURL = null;
+
+    if (file) {
+      const storageRef = ref(storage, `complaints/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      fileURL = await getDownloadURL(snapshot.ref);
+    }
+
     await addDoc(collection(db, "complaints"), {
       type: document.getElementById('postType').value,
       location: document.getElementById('location').value,
       title: document.getElementById('title').value,
       description: document.getElementById('desc').value,
+      fileURL: fileURL,
       author: authorName,
       authorId: user.uid,
       createdAt: serverTimestamp(),
@@ -207,9 +225,12 @@ document.getElementById('postBtn').onclick = async () => {
       likedBy: [],
       comments: []
     });
+
     alert("Posted!");
     document.getElementById('title').value = '';
     document.getElementById('desc').value = '';
+    document.getElementById('location').value = '';
+    document.getElementById('fileInput').value = '';
   } catch (e) {
     showError("Error posting: " + e.message);
   }
@@ -217,39 +238,46 @@ document.getElementById('postBtn').onclick = async () => {
 
 const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
 
-onSnapshot(q, 
+onSnapshot(q,
   (snapshot) => {
     document.getElementById('errorBanner').style.display = 'none';
     const postsDiv = document.getElementById('posts');
     postsDiv.innerHTML = '';
-    
+
     if (snapshot.empty) {
       postsDiv.innerHTML = '<p>No posts yet. Be the first to post!</p>';
       return;
     }
-    
+
     document.getElementById('status').textContent = `Loaded ${snapshot.size} posts`;
-    
+
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
       const id = docSnap.id;
-      const date = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString() : "Just now";
-      
-      const commentsHTML = (d.comments || []).map(c => 
+      const date = d.createdAt? new Date(d.createdAt.seconds * 1000).toLocaleString() : "Just now";
+
+      const commentsHTML = (d.comments || []).map(c =>
         `<div class="comment"><strong>${c.author}:</strong> ${c.text}</div>`
       ).join('');
-      
+
+      const fileHTML = d.fileURL?
+        (d.fileURL.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+         ? `<img src="${d.fileURL}" alt="attachment">`
+          : `<a href="${d.fileURL}" target="_blank">View attachment</a>`)
+        : '';
+
       postsDiv.innerHTML += `
         <div class="post-card">
           <strong>${d.title}</strong> - ${d.type}<br>
           ${d.description}<br>
+          ${fileHTML}
           <small>Posted by ${d.author} • ${d.location} • ${date}</small>
-          
+
           <div class="post-actions">
             <button class="like-btn" onclick="likePost('${id}')">👍 Like (${d.likes || 0})</button>
             <button class="comment-btn" onclick="toggleComments('${id}')">💬 Comment (${(d.comments || []).length})</button>
           </div>
-          
+
           <div class="comment-section" id="comments-${id}">
             ${commentsHTML}
             <input type="text" id="comment-input-${id}" placeholder="Write a comment...">
@@ -262,7 +290,7 @@ onSnapshot(q,
   (error) => {
     console.error("Firestore error:", error);
     showError(`Firestore Error: ${error.code}\n${error.message}`);
-    
+
     if (error.message.includes('index')) {
       document.getElementById('status').innerHTML = `<a href="${error.message.match(/https:\/\/.*/)}" target="_blank">Click here to create the missing index</a>`;
     }
@@ -272,16 +300,16 @@ onSnapshot(q,
 window.likePost = async (postId) => {
   const user = auth.currentUser;
   if (!user) return showError("Log in to like posts");
-  
+
   try {
     const postRef = doc(db, "complaints", postId);
     const postSnap = await getDoc(postRef);
     if (!postSnap.exists()) return;
-    
+
     if ((postSnap.data().likedBy || []).includes(user.uid)) {
       return alert("You've already liked this");
     }
-    
+
     await updateDoc(postRef, {
       likes: increment(1),
       likedBy: arrayUnion(user.uid)
@@ -293,17 +321,17 @@ window.likePost = async (postId) => {
 
 window.toggleComments = (postId) => {
   const section = document.getElementById(`comments-${postId}`);
-  section.style.display = section.style.display === 'block' ? 'none' : 'block';
+  section.style.display = section.style.display === 'block'? 'none' : 'block';
 };
 
 window.addComment = async (postId) => {
   const user = auth.currentUser;
   if (!user) return showError("Log in to comment");
-  
+
   const input = document.getElementById(`comment-input-${postId}`);
   const text = input.value.trim();
   if (!text) return;
-  
+
   try {
     await updateDoc(doc(db, "complaints", postId), {
       comments: arrayUnion({
