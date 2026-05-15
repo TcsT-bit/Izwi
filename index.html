@@ -75,6 +75,7 @@
     h1, h3 { margin: 10px 0; }
     .flag { font-size: 28px; }
     .error { color: red; font-weight: bold; }
+    .info { color: #0066CC; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -113,14 +114,15 @@
 
     <h3>Recent Complaints</h3>
     <div id="posts">Loading...</div>
+    <div id="status" class="info"></div>
   </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase config - UPDATED
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC_2XusB3B4EQdzn9S7BpFRw8f1xdGonhs",
   authDomain: "izwi-c22f3.firebaseapp.com",
@@ -196,16 +198,27 @@ document.getElementById('postBtn').onclick = async () => {
   }
 };
 
-// Load posts with error handling
-const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
+// Load posts - FIXED QUERY
+const q = query(
+  collection(db, "complaints"), 
+  where("createdAt", "!=", null), 
+  orderBy("createdAt", "desc")
+);
+
 onSnapshot(q, 
   (snapshot) => {
     const postsDiv = document.getElementById('posts');
+    const statusDiv = document.getElementById('status');
     postsDiv.innerHTML = '';
+    
     if (snapshot.empty) {
       postsDiv.innerHTML = '<p>No posts yet. Be the first to post!</p>';
+      statusDiv.textContent = '';
       return;
     }
+    
+    statusDiv.textContent = `Loaded ${snapshot.size} posts`;
+    
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
       const id = docSnap.id;
@@ -236,7 +249,12 @@ onSnapshot(q,
   },
   (error) => {
     console.error("Firestore error:", error);
-    document.getElementById('posts').innerHTML = `<p class="error">Error loading posts: ${error.message}</p>`;
+    document.getElementById('posts').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+    
+    // If missing index, show the link
+    if (error.message.includes('index')) {
+      document.getElementById('status').innerHTML = `<a href="${error.message.match(/https:\/\/.*/) }" target="_blank">Click here to create the missing index</a>`;
+    }
   }
 );
 
@@ -245,18 +263,22 @@ window.likePost = async (postId) => {
   const user = auth.currentUser;
   if (!user) return alert("Log in to like posts");
   
-  const postRef = doc(db, "complaints", postId);
-  const postSnap = await getDoc(postRef);
-  if (!postSnap.exists()) return;
-  
-  if ((postSnap.data().likedBy || []).includes(user.uid)) {
-    return alert("You've already liked this");
+  try {
+    const postRef = doc(db, "complaints", postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) return;
+    
+    if ((postSnap.data().likedBy || []).includes(user.uid)) {
+      return alert("You've already liked this");
+    }
+    
+    await updateDoc(postRef, {
+      likes: increment(1),
+      likedBy: arrayUnion(user.uid)
+    });
+  } catch (e) {
+    alert("Error liking: " + e.message);
   }
-  
-  await updateDoc(postRef, {
-    likes: increment(1),
-    likedBy: arrayUnion(user.uid)
-  });
 };
 
 // Toggle comments
@@ -274,15 +296,18 @@ window.addComment = async (postId) => {
   const text = input.value.trim();
   if (!text) return;
   
-  await updateDoc(doc(db, "complaints", postId), {
-    comments: arrayUnion({
-      author: user.displayName || user.email,
-      text: text,
-      createdAt: new Date().toISOString()
-    })
-  });
-  
-  input.value = '';
+  try {
+    await updateDoc(doc(db, "complaints", postId), {
+      comments: arrayUnion({
+        author: user.displayName || user.email,
+        text: text,
+        createdAt: new Date().toISOString()
+      })
+    });
+    input.value = '';
+  } catch (e) {
+    alert("Error commenting: " + e.message);
+  }
 };
 </script>
 </body>
