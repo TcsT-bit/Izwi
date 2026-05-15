@@ -90,6 +90,14 @@
   </style>
 </head>
 <body>
+<script>
+  // TEST: Remove this after we confirm the new code is live
+  window.onload = () => {
+    document.getElementById('errorBanner').style.display = 'block';
+    document.getElementById('errorBanner').textContent = 'TEST: If you see this, the new code is live';
+  };
+</script>
+
   <div class="container">
     <div id="errorBanner"></div>
     
