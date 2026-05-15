@@ -77,6 +77,7 @@
     .error { color: red; font-weight: bold; }
     .info { color: #0066CC; font-size: 14px; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 </head>
 <body>
   <div class="container">
@@ -118,6 +119,9 @@
   </div>
 
 <script type="module">
+eruda.init();
+console.log("App starting...");
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -138,6 +142,7 @@ const db = getFirestore(app);
 
 // Auth state
 onAuthStateChanged(auth, (user) => {
+  console.log("Auth state changed:", user ? user.email : "logged out");
   if (user) {
     document.getElementById('userEmail').innerText = user.displayName || user.email;
     document.getElementById('authSection').style.display = 'none';
@@ -153,6 +158,7 @@ document.getElementById('loginBtn').onclick = async () => {
   try {
     await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
   } catch (e) {
+    console.error("Login error:", e);
     alert(e.message);
   }
 };
@@ -163,6 +169,7 @@ document.getElementById('signupBtn').onclick = async () => {
     const userCred = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
     await updateProfile(userCred.user, { displayName: document.getElementById('displayName').value || 'Anonymous' });
   } catch (e) {
+    console.error("Signup error:", e);
     alert(e.message);
   }
 };
@@ -178,6 +185,7 @@ document.getElementById('postBtn').onclick = async () => {
   const authorName = postAs === 'anonymous' ? 'Anonymous' : (user.displayName || user.email);
 
   try {
+    console.log("Posting complaint...");
     await addDoc(collection(db, "complaints"), {
       type: document.getElementById('postType').value,
       location: document.getElementById('location').value,
@@ -190,15 +198,17 @@ document.getElementById('postBtn').onclick = async () => {
       likedBy: [],
       comments: []
     });
+    console.log("Post successful");
     alert("Posted!");
     document.getElementById('title').value = '';
     document.getElementById('desc').value = '';
   } catch (e) {
+    console.error("Post error:", e);
     alert("Error posting: " + e.message);
   }
 };
 
-// Load posts - FIXED QUERY
+// Load posts
 const q = query(
   collection(db, "complaints"), 
   where("createdAt", "!=", null), 
@@ -207,6 +217,7 @@ const q = query(
 
 onSnapshot(q, 
   (snapshot) => {
+    console.log("Snapshot received, docs:", snapshot.size);
     const postsDiv = document.getElementById('posts');
     const statusDiv = document.getElementById('status');
     postsDiv.innerHTML = '';
@@ -248,13 +259,8 @@ onSnapshot(q,
     });
   },
   (error) => {
-    console.error("Firestore error:", error);
+    console.error("Firestore listener error:", error);
     document.getElementById('posts').innerHTML = `<p class="error">Error: ${error.message}</p>`;
-    
-    // If missing index, show the link
-    if (error.message.includes('index')) {
-      document.getElementById('status').innerHTML = `<a href="${error.message.match(/https:\/\/.*/) }" target="_blank">Click here to create the missing index</a>`;
-    }
   }
 );
 
@@ -265,18 +271,12 @@ window.likePost = async (postId) => {
   
   try {
     const postRef = doc(db, "complaints", postId);
-    const postSnap = await getDoc(postRef);
-    if (!postSnap.exists()) return;
-    
-    if ((postSnap.data().likedBy || []).includes(user.uid)) {
-      return alert("You've already liked this");
-    }
-    
     await updateDoc(postRef, {
       likes: increment(1),
       likedBy: arrayUnion(user.uid)
     });
   } catch (e) {
+    console.error("Like error:", e);
     alert("Error liking: " + e.message);
   }
 };
@@ -306,6 +306,7 @@ window.addComment = async (postId) => {
     });
     input.value = '';
   } catch (e) {
+    console.error("Comment error:", e);
     alert("Error commenting: " + e.message);
   }
 };
