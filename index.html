@@ -30,6 +30,7 @@
       border: 1px solid #ddd;
       border-radius: 5px;
       box-sizing: border-box;
+      font-family: inherit;
     }
     button {
       background: #007bff;
@@ -38,6 +39,7 @@
       padding: 10px 20px;
       border-radius: 5px;
       cursor: pointer;
+      font-size: 14px;
     }
     button:hover {
       background: #0056b3;
@@ -49,6 +51,12 @@
       text-align: right;
       margin-bottom: 10px;
       font-size: 14px;
+    }
+    .author-options {
+      margin: 10px 0;
+    }
+    .author-options label {
+      margin-right: 20px;
     }
   </style>
 </head>
@@ -63,9 +71,9 @@
   <div class="form-container">
     <input type="text" id="title" placeholder="Title">
     <input type="text" id="location" placeholder="Location">
-    <textarea id="description" placeholder="Describe the issue"></textarea>
+    <textarea id="description" placeholder="Describe the issue" rows="4"></textarea>
     
-    <div>
+    <div class="author-options">
       <label><input type="radio" name="authorType" value="anonymous" checked> Post as Anonymous</label>
       <label><input type="radio" name="authorType" value="name"> Post with Email</label>
     </div>
@@ -80,6 +88,7 @@
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // REPLACE THESE WITH YOUR REAL FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_AUTH_DOMAIN",
@@ -97,7 +106,7 @@
 
     const complaintsCol = collection(db, "complaints");
     
-    // Removed the where() filter so posts with createdAt: null will show
+    // No where() filter - shows ALL posts including old ones with createdAt: null
     const q = query(complaintsCol, orderBy("createdAt", "desc"));
 
     onSnapshot(q, (snapshot) => {
@@ -110,30 +119,34 @@
         const div = document.createElement("div");
         div.className = "complaint";
         
-        const date = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString() : "Just now";
+        // Handle null createdAt for old posts
+        const date = data.createdAt 
+          ? new Date(data.createdAt.seconds * 1000).toLocaleString() 
+          : "Just now";
         
         div.innerHTML = `
           <strong>${data.author || "Anonymous"}</strong> - ${date}<br>
-          <strong>${data.title}</strong><br>
-          ${data.location}<br>
-          ${data.description}
+          <strong>${data.title || ""}</strong><br>
+          ${data.location || ""}<br>
+          ${data.description || ""}
         `;
         list.appendChild(div);
       });
     });
 
     document.getElementById("postBtn").onclick = async () => {
-      const title = document.getElementById("title").value;
-      const location = document.getElementById("location").value;
-      const description = document.getElementById("description").value;
-      const author = document.querySelector('input[name="authorType"]:checked').value === "name" 
-        ? auth.currentUser?.email || "Anonymous"
-        : "Anonymous";
-
+      const title = document.getElementById("title").value.trim();
+      const location = document.getElementById("location").value.trim();
+      const description = document.getElementById("description").value.trim();
+      
       if (!title || !location || !description) {
         alert("Please fill all fields");
         return;
       }
+
+      const author = document.querySelector('input[name="authorType"]:checked').value === "name" 
+        ? auth.currentUser?.email || "Anonymous"
+        : "Anonymous";
 
       console.log("Posting complaint...");
       await addDoc(complaintsCol, {
@@ -151,7 +164,7 @@
 
     onAuthStateChanged(auth, user => {
       console.log("Auth state changed:", user ? user.email : "logged out");
-      document.getElementById("userEmail").textContent = user ? user.email : "";
+      document.getElementById("userEmail").textContent = user ? `Logged in as: ${user.email}` : "";
       document.getElementById("logoutBtn").style.display = user ? "inline-block" : "none";
     });
 
