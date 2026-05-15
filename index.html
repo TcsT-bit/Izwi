@@ -13,7 +13,7 @@
       font-family: Arial, sans-serif;
       padding: 20px;
     }
- .container {
+.container {
       max-width: 600px;
       margin: 0 auto;
       background: rgba(255, 255, 255, 0.95);
@@ -37,26 +37,26 @@
       font-weight: bold;
     }
     button:hover { opacity: 0.9; }
- .post-card {
+.post-card {
       background: white;
       padding: 15px;
       margin: 10px 0;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
- .post-card img {
+.post-card img {
       max-width: 100%;
       margin-top: 10px;
       border-radius: 5px;
     }
- .post-actions {
+.post-actions {
       display: flex;
       gap: 15px;
       margin-top: 10px;
       border-top: 1px solid #eee;
       padding-top: 10px;
     }
- .like-btn,.comment-btn {
+.like-btn,.comment-btn {
       background: none;
       color: #0066CC;
       border: none;
@@ -65,11 +65,11 @@
       cursor: pointer;
       font-size: 14px;
     }
- .comment-section {
+.comment-section {
       margin-top: 10px;
       display: none;
     }
- .comment {
+.comment {
       background: #f5f5f5;
       padding: 8px;
       border-radius: 5px;
@@ -86,6 +86,13 @@
       border: 1px solid #ef5350;
       font-size: 14px;
       white-space: pre-wrap;
+    }
+   .solution-box {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -119,9 +126,15 @@
         <option value="Safety & Security">Safety & Security</option>
         <option value="Other">Other</option>
       </select>
+
       <input id="location" type="text" placeholder="Location/Suburb">
       <input id="title" type="text" placeholder="Title">
       <textarea id="desc" placeholder="Describe the issue" rows="4"></textarea>
+
+      <!-- NEW FIELDS -->
+      <input id="problem" type="text" placeholder="Problem" value="izwi-c22f3">
+      <input id="solution" type="text" placeholder="Solution" value="Mzansi Work">
+
       <input id="fileInput" type="file" accept="image/*,application/pdf">
       <button id="postBtn">Post Complaint</button>
     </div>
@@ -217,6 +230,8 @@ document.getElementById('postBtn').onclick = async () => {
       location: document.getElementById('location').value,
       title: document.getElementById('title').value,
       description: document.getElementById('desc').value,
+      problem: document.getElementById('problem').value, // NEW
+      solution: document.getElementById('solution').value, // NEW
       fileURL: fileURL,
       author: authorName,
       authorId: user.uid,
@@ -230,6 +245,7 @@ document.getElementById('postBtn').onclick = async () => {
     document.getElementById('title').value = '';
     document.getElementById('desc').value = '';
     document.getElementById('location').value = '';
+    // Keep problem/solution values so user doesn't have to retype
     document.getElementById('fileInput').value = '';
   } catch (e) {
     showError("Error posting: " + e.message);
@@ -257,9 +273,8 @@ onSnapshot(q,
       const d = docSnap.data();
       const id = docSnap.id;
 
-      // Safe date check - handles null createdAt
       const date = (d.createdAt && typeof d.createdAt.toDate === 'function')
-       ? d.createdAt.toDate().toLocaleString()
+      ? d.createdAt.toDate().toLocaleString()
         : "Just now";
 
       const commentsHTML = (d.comments || []).map(c =>
@@ -268,15 +283,17 @@ onSnapshot(q,
 
       const fileHTML = d.fileURL?
         (d.fileURL.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-       ? `<img src="${d.fileURL}" alt="attachment">`
+      ? `<img src="${d.fileURL}" alt="attachment">`
           : `<a href="${d.fileURL}" target="_blank">View attachment</a>`)
         : '';
 
       html += `
         <div class="post-card">
           <strong>${d.title || ''}</strong> - ${d.type || ''}<br>
+          <strong>Problem:</strong> ${d.problem || 'N/A'}<br>
           ${d.description || ''}<br>
           ${fileHTML}
+          ${d.solution? `<div class="solution-box"><strong>Solution:</strong> ${d.solution}</div>` : ''}
           <small>Posted by ${d.author || 'Anonymous'} • ${d.location || ''} • ${date}</small>
 
           <div class="post-actions">
