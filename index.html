@@ -1,113 +1,76 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Complaints</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      max-width: 700px;
-      margin: 20px auto;
-      padding: 0 16px;
-      background: #f5f5f5;
-    }
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-    .post {
-      background: white;
-      padding: 16px;
-      margin-bottom: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .post strong {
-      display: block;
-      margin-bottom: 6px;
-      color: #222;
-    }
-    .post p {
-      margin: 0 0 8px 0;
-      color: #444;
-    }
-    .post small {
-      color: #666;
-      font-size: 12px;
-    }
-    #posts {
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Complaints</h1>
-  <div id="posts">Loading...</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  <script type="module">
-    // Import Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_2XusB3B4EQdzn9S7BpFRw8f1xdGonhs",
-      authDomain: "izwi-c22f3.firebaseapp.com",
-      projectId: "izwi-c22f3",
-      storageBucket: "izwi-c22f3.firebasestorage.app",
-      messagingSenderId: "249797256658",
-      appId: "1:249797256658:web:71c792dcc5cbe81159d40b"
-    };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  console.log("App starting...");
 
-    console.log("App starting...");
+  const complaintsCol = collection(db, "complaints");
+  
+  // Removed the where() filter so posts with createdAt: null will show
+  const q = query(complaintsCol, orderBy("createdAt", "desc"));
 
-    // Sign in anonymously if not logged in
-    onAuthStateChanged(auth, (user) => {
-      console.log("Auth state changed:", user ? user.email || "anonymous" : "no user");
-      if (!user) {
-        signInAnonymously(auth).catch(err => console.error("Auth error:", err));
-      }
+  onSnapshot(q, (snapshot) => {
+    console.log("Snapshot received, docs:", snapshot.size);
+    const list = document.getElementById("complaintsList");
+    list.innerHTML = "";
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const div = document.createElement("div");
+      div.className = "complaint";
+      
+      const date = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString() : "Just now";
+      
+      div.innerHTML = `
+        <strong>${data.author || "Anonymous"}</strong> - ${date}<br>
+        <strong>${data.title}</strong><br>
+        ${data.location}<br>
+        ${data.description}
+      `;
+      list.appendChild(div);
     });
+  });
 
-    // Fixed query - shows all posts even if createdAt is null
-    const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
+  document.getElementById("postBtn").onclick = async () => {
+    const title = document.getElementById("title").value;
+    const location = document.getElementById("location").value;
+    const description = document.getElementById("description").value;
+    const author = document.querySelector('input[name="authorType"]:checked').value === "name" 
+      ? auth.currentUser.email 
+      : "Anonymous";
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      console.log("Snapshot received, docs:", snapshot.size);
-      const posts = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        // Handle old posts where createdAt is null so they still show up
-        if (!data.createdAt) {
-          data.createdAt = { seconds: Date.now() / 1000, nanoseconds: 0 };
-        }
-        posts.push({ id: doc.id, ...data });
-      });
-      renderPosts(posts);
-    }, (error) => {
-      console.error("Firestore error:", error);
-      document.getElementById("posts").innerHTML = "Error loading posts. Check console for details.";
+    console.log("Posting complaint...");
+    await addDoc(complaintsCol, {
+      title,
+      location,
+      description,
+      author,
+      createdAt: serverTimestamp()
     });
+    
+    document.getElementById("title").value = "";
+    document.getElementById("location").value = "";
+    document.getElementById("description").value = "";
+  };
 
-    function renderPosts(posts) {
-      const container = document.getElementById("posts");
-      if (posts.length === 0) {
-        container.innerHTML = "<p>No posts yet.</p>";
-        return;
-      }
-      container.innerHTML = posts.map(post => `
-        <div class="post">
-          <strong>${post.title || "No title"}</strong>
-          <p>${post.description || ""}</p>
-          <small>${post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString() : "No date"}</small>
-        </div>
-      `).join("");
-    }
-  </script>
-</body>
-</html>
+  onAuthStateChanged(auth, user => {
+    console.log("Auth state changed:", user ? user.email : "logged out");
+    document.getElementById("userEmail").textContent = user ? user.email : "";
+  });
+
+  document.getElementById("logoutBtn").onclick = () => signOut(auth);
+</script>
