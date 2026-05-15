@@ -28,6 +28,12 @@
       border-radius: 5px;
       box-sizing: border-box;
       font-size: 16px;
+      color: #000;
+      background: #fff;
+    }
+    select option {
+      color: #000;
+      background: #fff;
     }
     button {
       background: #0066CC;
@@ -182,7 +188,7 @@
 
       <div id="mw-auth-section" class="auth-box">
         <input type="email" id="mw-email" placeholder="Email">
-        <input type="password" id="mw-password" placeholder="Password">
+        <input id="mw-password" type="password" placeholder="Password">
         <button class="mw-btn" onclick="mwSignUp()">Sign Up</button>
         <button class="mw-btn" onclick="mwSignIn()">Login</button>
       </div>
@@ -191,8 +197,8 @@
         <p>Logged in as: <span id="mw-user-email"></span> <button onclick="mwSignOut()">Logout</button></p>
 
         <div class="mw-tabs">
-          <button class="mw-tab active" onclick="mwSwitchTab('public_works')">Public Works</button>
-          <button class="mw-tab" onclick="mwSwitchTab('retail')">Retail Jobs</button>
+          <button class="mw-tab" onclick="mwSwitchTab('public_works')">Public Works</button>
+          <button class="mw-tab active" onclick="mwSwitchTab('retail')">Retail Jobs</button>
           <button class="mw-tab" onclick="mwSwitchTab('student_gig')">Student Gigs</button>
           <button class="mw-tab" onclick="mwShowPostJob()">Post a Job</button>
         </div>
@@ -363,7 +369,7 @@ onSnapshot(q,
       const d = docSnap.data();
       const id = docSnap.id;
       const date = (d.createdAt && typeof d.createdAt.toDate === 'function')
-  ? d.createdAt.toDate().toLocaleString()
+ ? d.createdAt.toDate().toLocaleString()
         : "Just now";
 
       const commentsHTML = (d.comments || []).map(c =>
@@ -372,7 +378,7 @@ onSnapshot(q,
 
       const fileHTML = d.fileURL?
         (d.fileURL.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-  ? `<img src="${d.fileURL}" alt="attachment">`
+ ? `<img src="${d.fileURL}" alt="attachment">`
           : `<a href="${d.fileURL}" target="_blank">View attachment</a>`)
         : '';
 
@@ -449,7 +455,7 @@ window.addComment = async (postId) => {
 };
 
 /* ============ MZANSI WORKS - JOBS ============ */
-let mwCurrentTab = 'public_works'
+let mwCurrentTab = 'retail'
 let mwUnsubscribe = null
 
 onAuthStateChanged(auth, (user) => {
@@ -520,14 +526,17 @@ window.mwCreateJob = async () => {
   const user = auth.currentUser
   if (!user) return alert("Log in first")
 
+  const title = document.getElementById('mw-job-title').value
+  if (!title) return alert("Enter a job title")
+
   try {
     await addDoc(collection(db, "jobs"), {
       employerId: user.uid,
       employerEmail: user.email,
-      title: document.getElementById('mw-job-title').value,
+      title: title,
       category: document.getElementById('mw-job-category').value,
       location: document.getElementById('mw-job-location').value,
-      payAmount: document.getElementById('mw-job-pay').value,
+      payAmount: Number(document.getElementById('mw-job-pay').value) || 0,
       payType: document.getElementById('mw-job-pay-type').value,
       description: document.getElementById('mw-job-desc').value,
       status: 'open',
@@ -538,7 +547,7 @@ window.mwCreateJob = async () => {
     document.getElementById('mw-post-job-form').classList.add('hidden')
     mwLoadJobs(mwCurrentTab)
   } catch (e) {
-    alert(e.message)
+    alert("Error posting job: " + e.message)
   }
 }
 
@@ -573,24 +582,41 @@ function mwLoadJobs(category) {
       `
     })
     jobsDiv.innerHTML = html
+  }, (err) => {
+    console.error(err)
+    jobsDiv.innerHTML = '<p>Error loading jobs. Check Firestore rules.</p>'
   })
 }
 
 window.mwApplyJob = async (jobId) => {
   const user = auth.currentUser
-  if (!user) return alert("Log in first")
+  if (!user) return alert("Please log in first to apply")
 
   try {
-    await updateDoc(doc(db, "jobs", jobId), {
+    const jobRef = doc(db, "jobs", jobId)
+    const jobSnap = await getDoc(jobRef)
+
+    if (!jobSnap.exists()) {
+      return alert("Job no longer exists")
+    }
+
+    const applications = jobSnap.data().applications || []
+    const alreadyApplied = applications.some(a => a.userId === user.uid)
+
+    if (alreadyApplied) {
+      return alert("You've already applied for this job")
+    }
+
+    await updateDoc(jobRef, {
       applications: arrayUnion({
         userId: user.uid,
         email: user.email,
         appliedAt: new Date().toISOString()
       })
     })
-    alert('Application sent!')
+    alert('Application sent successfully!')
   } catch (e) {
-    alert(e.message)
+    alert("Error applying: " + e.message)
   }
 }
 </script>
