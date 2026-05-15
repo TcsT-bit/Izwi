@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Izwi - The voice of South Africa</title>
+  <title>Izwi & Mzansi Works</title>
   <style>
     body {
       background: linear-gradient(135deg, #007A4D 0%, #FFB612 20%, #000 40%, #0066CC 60%, #FFFFFF 80%, #DE3831 100%);
@@ -13,8 +13,8 @@
       font-family: Arial, sans-serif;
       padding: 20px;
     }
-.container {
-      max-width: 600px;
+  .container {
+      max-width: 800px;
       margin: 0 auto;
       background: rgba(255, 255, 255, 0.95);
       padding: 20px;
@@ -37,26 +37,50 @@
       font-weight: bold;
     }
     button:hover { opacity: 0.9; }
-.post-card {
+  .app-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ddd;
+    }
+  .app-tab {
+      padding: 12px 24px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 16px;
+      font-weight: bold;
+      color: #555;
+    }
+  .app-tab.active {
+      border-bottom: 3px solid #0066CC;
+      color: #0066CC;
+    }
+  .app-section { display: none; }
+  .app-section.active { display: block; }
+  .hidden { display: none; }
+
+    /* Izwi styles */
+  .post-card {
       background: white;
       padding: 15px;
       margin: 10px 0;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-.post-card img {
+  .post-card img {
       max-width: 100%;
       margin-top: 10px;
       border-radius: 5px;
     }
-.post-actions {
+  .post-actions {
       display: flex;
       gap: 15px;
       margin-top: 10px;
       border-top: 1px solid #eee;
       padding-top: 10px;
     }
-.like-btn,.comment-btn {
+  .like-btn,.comment-btn {
       background: none;
       color: #0066CC;
       border: none;
@@ -65,11 +89,8 @@
       cursor: pointer;
       font-size: 14px;
     }
-.comment-section {
-      margin-top: 10px;
-      display: none;
-    }
-.comment {
+  .comment-section { margin-top: 10px; display: none; }
+  .comment {
       background: #f5f5f5;
       padding: 8px;
       border-radius: 5px;
@@ -87,82 +108,140 @@
       font-size: 14px;
       white-space: pre-wrap;
     }
-   .solution-box {
+  .solution-box {
       background: #e8f5e9;
       border-left: 4px solid #4caf50;
       padding: 10px;
       margin-top: 10px;
       border-radius: 4px;
     }
+
+    /* Mzansi Works styles */
+  .mw-tabs { display: flex; gap: 10px; margin: 20px 0; border-bottom: 2px solid #eee; }
+  .mw-tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; }
+  .mw-tab.active { border-bottom: 3px solid #1a5d1a; font-weight: bold; color: #1a5d1a; }
+  .job-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+  .mw-btn { background: #1a5d1a; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+  .mw-btn:hover { background: #134813; }
+  .auth-box { max-width: 400px; margin: 20px auto; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div id="errorBanner"></div>
+    <h1>🇿🇦 Izwi & Mzansi Works</h1>
 
-    <h1>Izwi 🇿🇦</h1>
-    <p>The voice of South Africa</p>
-
-    <div id="authSection">
-      <input id="email" type="email" placeholder="Email">
-      <input id="password" type="password" placeholder="Password">
-      <input id="displayName" type="text" placeholder="Display Name - leave blank for Anonymous">
-      <button id="loginBtn">Login</button>
-      <button id="signupBtn">Sign Up</button>
+    <div class="app-tabs">
+      <button class="app-tab active" onclick="switchApp('izwi')">Izwi - Complaints</button>
+      <button class="app-tab" onclick="switchApp('mw')">Mzansi Works - Jobs</button>
     </div>
 
-    <div id="postSection" style="display:none;">
-      <p>Logged in as: <span id="userEmail"></span> <button id="logoutBtn" style="width:auto; padding:5px 15px;">Logout</button></p>
+    <!-- IZWI APP -->
+    <div id="izwi-app" class="app-section active">
+      <div id="errorBanner"></div>
+      <p>The voice of South Africa</p>
 
-      <p><strong>Post as:</strong></p>
-      <label><input type="radio" name="postAs" value="name" checked> Your Name</label>
-      <label><input type="radio" name="postAs" value="anonymous"> Anonymous</label>
+      <div id="authSection">
+        <input id="email" type="email" placeholder="Email">
+        <input id="password" type="password" placeholder="Password">
+        <input id="displayName" type="text" placeholder="Display Name - leave blank for Anonymous">
+        <button id="loginBtn">Login</button>
+        <button id="signupBtn">Sign Up</button>
+      </div>
 
-      <select id="postType">
-        <option value="Load shedding">Load shedding</option>
-        <option value="Water">Water</option>
-        <option value="Roads">Roads</option>
-        <option value="Healthcare">Healthcare</option>
-        <option value="Safety & Security">Safety & Security</option>
-        <option value="Other">Other</option>
-      </select>
+      <div id="postSection" style="display:none;">
+        <p>Logged in as: <span id="userEmail"></span> <button id="logoutBtn" style="width:auto; padding:5px 15px;">Logout</button></p>
 
-      <input id="location" type="text" placeholder="Location/Suburb">
-      <input id="title" type="text" placeholder="Title">
-      <textarea id="desc" placeholder="Describe the issue" rows="4"></textarea>
+        <p><strong>Post as:</strong></p>
+        <label><input type="radio" name="postAs" value="name" checked> Your Name</label>
+        <label><input type="radio" name="postAs" value="anonymous"> Anonymous</label>
 
-      <!-- NEW FIELDS -->
-      <input id="problem" type="text" placeholder="Problem" value="izwi-c22f3">
-      <input id="solution" type="text" placeholder="Solution" value="Mzansi Work">
+        <select id="postType">
+          <option value="Load shedding">Load shedding</option>
+          <option value="Water">Water</option>
+          <option value="Roads">Roads</option>
+          <option value="Healthcare">Healthcare</option>
+          <option value="Safety & Security">Safety & Security</option>
+          <option value="Other">Other</option>
+        </select>
 
-      <input id="fileInput" type="file" accept="image/*,application/pdf">
-      <button id="postBtn">Post Complaint</button>
+        <input id="location" type="text" placeholder="Location/Suburb">
+        <input id="title" type="text" placeholder="Title">
+        <textarea id="desc" placeholder="Describe the issue" rows="4"></textarea>
+        <input id="problem" type="text" placeholder="Problem" value="izwi-c22f3">
+        <input id="solution" type="text" placeholder="Solution" value="Mzansi Work">
+        <input id="fileInput" type="file" accept="image/*,application/pdf">
+        <button id="postBtn">Post Complaint</button>
+      </div>
+
+      <h3>Recent Complaints</h3>
+      <div id="posts">Loading...</div>
+      <div id="status"></div>
     </div>
 
-    <h3>Recent Complaints</h3>
-    <div id="posts">Loading...</div>
-    <div id="status"></div>
+    <!-- MZANSI WORKS APP -->
+    <div id="mw-app" class="app-section">
+      <p>Find paid work in your community</p>
+
+      <div id="mw-auth-section" class="auth-box">
+        <input type="email" id="mw-email" placeholder="Email">
+        <input type="password" id="mw-password" placeholder="Password">
+        <button class="mw-btn" onclick="mwSignUp()">Sign Up</button>
+        <button class="mw-btn" onclick="mwSignIn()">Login</button>
+      </div>
+
+      <div id="mw-app-section" class="hidden">
+        <p>Logged in as: <span id="mw-user-email"></span> <button onclick="mwSignOut()">Logout</button></p>
+
+        <div class="mw-tabs">
+          <button class="mw-tab active" onclick="mwSwitchTab('public_works')">Public Works</button>
+          <button class="mw-tab" onclick="mwSwitchTab('retail')">Retail Jobs</button>
+          <button class="mw-tab" onclick="mwSwitchTab('student_gig')">Student Gigs</button>
+          <button class="mw-tab" onclick="mwShowPostJob()">Post a Job</button>
+        </div>
+
+        <div id="mw-jobs-list"></div>
+
+        <div id="mw-post-job-form" class="hidden">
+          <h3>Post a Job</h3>
+          <input id="mw-job-title" placeholder="Job Title">
+          <select id="mw-job-category">
+            <option value="public_works">Public Works</option>
+            <option value="retail">Retail Jobs</option>
+            <option value="student_gig">Student Gigs</option>
+          </select>
+          <input id="mw-job-location" placeholder="Location">
+          <input id="mw-job-pay" type="number" placeholder="Pay Amount">
+          <select id="mw-job-pay-type">
+            <option value="per_day">Per Day</option>
+            <option value="per_hour">Per Hour</option>
+            <option value="per_month">Per Month</option>
+          </select>
+          <textarea id="mw-job-desc" placeholder="Description"></textarea>
+          <button class="mw-btn" onclick="mwCreateJob()">Post Job</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-function showError(msg) {
-  const banner = document.getElementById('errorBanner');
-  banner.style.display = 'block';
-  banner.textContent = msg;
+/* ============ APP SWITCHER ============ */
+window.switchApp = (app) => {
+  document.querySelectorAll('.app-tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'))
+  if (app === 'izwi') {
+    document.querySelectorAll('.app-tab')[0].classList.add('active')
+    document.getElementById('izwi-app').classList.add('active')
+  } else {
+    document.querySelectorAll('.app-tab')[1].classList.add('active')
+    document.getElementById('mw-app').classList.add('active')
+  }
 }
 
-window.onerror = function(msg, url, line, col, error) {
-  showError(`Error: ${msg}\nLine ${line}:${col}`);
-};
-
-window.addEventListener('unhandledrejection', function(e) {
-  showError(`Promise Error: ${e.reason}`);
-});
+/* ============ FIREBASE INIT ============ */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC_2XusB3B4EQdzn9S7BpFRw8f1xdGonhs",
@@ -178,6 +257,13 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+function showError(msg) {
+  const banner = document.getElementById('errorBanner');
+  banner.style.display = 'block';
+  banner.textContent = msg;
+}
+
+/* ============ IZWI - COMPLAINTS ============ */
 onAuthStateChanged(auth, (user) => {
   if (user) {
     document.getElementById('userEmail').innerText = user.displayName || user.email;
@@ -230,8 +316,8 @@ document.getElementById('postBtn').onclick = async () => {
       location: document.getElementById('location').value,
       title: document.getElementById('title').value,
       description: document.getElementById('desc').value,
-      problem: document.getElementById('problem').value, // NEW
-      solution: document.getElementById('solution').value, // NEW
+      problem: document.getElementById('problem').value,
+      solution: document.getElementById('solution').value,
       fileURL: fileURL,
       author: authorName,
       authorId: user.uid,
@@ -245,7 +331,6 @@ document.getElementById('postBtn').onclick = async () => {
     document.getElementById('title').value = '';
     document.getElementById('desc').value = '';
     document.getElementById('location').value = '';
-    // Keep problem/solution values so user doesn't have to retype
     document.getElementById('fileInput').value = '';
   } catch (e) {
     showError("Error posting: " + e.message);
@@ -256,7 +341,6 @@ const q = query(collection(db, "complaints"), orderBy("createdAt", "desc"));
 
 onSnapshot(q,
   (snapshot) => {
-    console.log("Docs found:", snapshot.size);
     document.getElementById('errorBanner').style.display = 'none';
     const postsDiv = document.getElementById('posts');
 
@@ -272,9 +356,8 @@ onSnapshot(q,
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
       const id = docSnap.id;
-
       const date = (d.createdAt && typeof d.createdAt.toDate === 'function')
-      ? d.createdAt.toDate().toLocaleString()
+    ? d.createdAt.toDate().toLocaleString()
         : "Just now";
 
       const commentsHTML = (d.comments || []).map(c =>
@@ -283,7 +366,7 @@ onSnapshot(q,
 
       const fileHTML = d.fileURL?
         (d.fileURL.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-      ? `<img src="${d.fileURL}" alt="attachment">`
+    ? `<img src="${d.fileURL}" alt="attachment">`
           : `<a href="${d.fileURL}" target="_blank">View attachment</a>`)
         : '';
 
@@ -295,12 +378,10 @@ onSnapshot(q,
           ${fileHTML}
           ${d.solution? `<div class="solution-box"><strong>Solution:</strong> ${d.solution}</div>` : ''}
           <small>Posted by ${d.author || 'Anonymous'} • ${d.location || ''} • ${date}</small>
-
           <div class="post-actions">
             <button class="like-btn" onclick="likePost('${id}')">👍 Like (${d.likes || 0})</button>
             <button class="comment-btn" onclick="toggleComments('${id}')">💬 Comment (${(d.comments || []).length})</button>
           </div>
-
           <div class="comment-section" id="comments-${id}">
             ${commentsHTML}
             <input type="text" id="comment-input-${id}" placeholder="Write a comment...">
@@ -313,28 +394,20 @@ onSnapshot(q,
     postsDiv.innerHTML = html;
   },
   (error) => {
-    console.error("Firestore error:", error);
     showError(`Firestore Error: ${error.code}\n${error.message}`);
-
-    if (error.message.includes('index')) {
-      document.getElementById('status').innerHTML = `<a href="${error.message.match(/https:\/\/.*/)}" target="_blank">Click here to create the missing index</a>`;
-    }
   }
 );
 
 window.likePost = async (postId) => {
   const user = auth.currentUser;
   if (!user) return showError("Log in to like posts");
-
   try {
     const postRef = doc(db, "complaints", postId);
     const postSnap = await getDoc(postRef);
     if (!postSnap.exists()) return;
-
     if ((postSnap.data().likedBy || []).includes(user.uid)) {
       return alert("You've already liked this");
     }
-
     await updateDoc(postRef, {
       likes: increment(1),
       likedBy: arrayUnion(user.uid)
@@ -352,11 +425,9 @@ window.toggleComments = (postId) => {
 window.addComment = async (postId) => {
   const user = auth.currentUser;
   if (!user) return showError("Log in to comment");
-
   const input = document.getElementById(`comment-input-${postId}`);
   const text = input.value.trim();
   if (!text) return;
-
   try {
     await updateDoc(doc(db, "complaints", postId), {
       comments: arrayUnion({
@@ -370,6 +441,143 @@ window.addComment = async (postId) => {
     showError("Error commenting: " + e.message);
   }
 };
+
+/* ============ MZANSI WORKS - JOBS ============ */
+let mwCurrentTab = 'public_works'
+let mwUnsubscribe = null
+
+onAuthStateChanged(auth, (user) => {
+  if (user && document.getElementById('mw-app').classList.contains('active')) {
+    mwShowApp(user)
+  }
+})
+
+window.mwSignUp = async () => {
+  const email = document.getElementById('mw-email').value
+  const password = document.getElementById('mw-password').value
+  try {
+    await createUserWithEmailAndPassword(auth, email, password)
+    alert('Account created! You are now logged in.')
+  } catch (e) {
+    alert(e.message)
+  }
+}
+
+window.mwSignIn = async () => {
+  const email = document.getElementById('mw-email').value
+  const password = document.getElementById('mw-password').value
+  try {
+    const { user } = await signInWithEmailAndPassword(auth, email, password)
+    mwShowApp(user)
+  } catch (e) {
+    alert(e.message)
+  }
+}
+
+window.mwSignOut = async () => {
+  await signOut(auth)
+  document.getElementById('mw-auth-section').classList.remove('hidden')
+  document.getElementById('mw-app-section').classList.add('hidden')
+  if (mwUnsubscribe) mwUnsubscribe()
+}
+
+function mwShowApp(user) {
+  document.getElementById('mw-auth-section').classList.add('hidden')
+  document.getElementById('mw-app-section').classList.remove('hidden')
+  document.getElementById('mw-user-email').innerText = user.email
+  mwLoadJobs(mwCurrentTab)
+}
+
+window.mwSwitchTab = (tab) => {
+  mwCurrentTab = tab
+  document.querySelectorAll('.mw-tab').forEach(t => t.classList.remove('active'))
+  event.target.classList.add('active')
+  document.getElementById('mw-post-job-form').classList.add('hidden')
+  mwLoadJobs(tab)
+}
+
+window.mwShowPostJob = () => {
+  document.getElementById('mw-post-job-form').classList.remove('hidden')
+  document.getElementById('mw-jobs-list').innerHTML = ''
+}
+
+window.mwCreateJob = async () => {
+  const user = auth.currentUser
+  if (!user) return alert("Log in first")
+
+  try {
+    await addDoc(collection(db, "jobs"), {
+      employerId: user.uid,
+      employerEmail: user.email,
+      title: document.getElementById('mw-job-title').value,
+      category: document.getElementById('mw-job-category').value,
+      location: document.getElementById('mw-job-location').value,
+      payAmount: document.getElementById('mw-job-pay').value,
+      payType: document.getElementById('mw-job-pay-type').value,
+      description: document.getElementById('mw-job-desc').value,
+      status: 'open',
+      createdAt: serverTimestamp(),
+      applications: []
+    })
+    alert('Job posted!')
+    document.getElementById('mw-post-job-form').classList.add('hidden')
+    mwLoadJobs(mwCurrentTab)
+  } catch (e) {
+    alert(e.message)
+  }
+}
+
+function mwLoadJobs(category) {
+  if (mwUnsubscribe) mwUnsubscribe()
+
+  const q = query(
+    collection(db, "jobs"),
+    where("category", "==", category),
+    where("status", "==", "open"),
+    orderBy("createdAt", "desc")
+  )
+
+  mwUnsubscribe = onSnapshot(q, (snapshot) => {
+    const jobsDiv = document.getElementById('mw-jobs-list')
+    if (snapshot.empty) {
+      jobsDiv.innerHTML = '<p>No jobs yet. Be the first to post!</p>'
+      return
+    }
+
+    let html = ''
+    snapshot.forEach(docSnap => {
+      const job = docSnap.data()
+      html += `
+        <div class="job-card">
+          <h3>${job.title}</h3>
+          <p><strong>Location:</strong> ${job.location || 'Not specified'}</p>
+          <p><strong>Pay:</strong> R${job.payAmount} ${job.payType.replace('_', '/')}</p>
+          <p>${job.description}</p>
+          <button class="mw-btn" onclick="mwApplyJob('${docSnap.id}')">Apply Now</button>
+        </div>
+      `
+    })
+    jobsDiv.innerHTML = html
+  })
+}
+
+window.mwApplyJob = async (jobId) => {
+  const user = auth.currentUser
+  if (!user) return alert("Log in first")
+
+  try {
+    await updateDoc(doc(db, "jobs", jobId), {
+      applications: arrayUnion({
+        userId: user.uid,
+        email: user.email,
+        appliedAt: new Date().toISOString()
+      })
+    })
+    alert('Application sent!')
+  } catch (e) {
+    alert(e.message)
+  }
+}
 </script>
 </body>
 </html>
