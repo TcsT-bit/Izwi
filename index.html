@@ -76,10 +76,23 @@
     .flag { font-size: 28px; }
     .error { color: red; font-weight: bold; }
     .info { color: #0066CC; font-size: 14px; }
+    #errorBanner {
+      background: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      display: none;
+      border: 1px solid #ef5350;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <div id="errorBanner"></div>
+    
     <h1>Izwi <span class="flag">🇿🇦</span></h1>
     <p>The voice of South Africa</p>
 
@@ -122,6 +135,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// Show errors on page
+function showError(msg) {
+  const banner = document.getElementById('errorBanner');
+  banner.style.display = 'block';
+  banner.textContent = msg;
+}
+
+// Catch all JS errors
+window.onerror = function(msg, url, line, col, error) {
+  showError(`Error: ${msg}\nLine ${line}:${col}`);
+  console.error(error);
+};
+
+window.addEventListener('unhandledrejection', function(e) {
+  showError(`Promise Error: ${e.reason}`);
+  console.error(e.reason);
+});
+
 // Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC_2XusB3B4EQdzn9S7BpFRw8f1xdGonhs",
@@ -153,7 +184,7 @@ document.getElementById('loginBtn').onclick = async () => {
   try {
     await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
   } catch (e) {
-    alert(e.message);
+    showError("Login failed: " + e.message);
   }
 };
 
@@ -163,7 +194,7 @@ document.getElementById('signupBtn').onclick = async () => {
     const userCred = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
     await updateProfile(userCred.user, { displayName: document.getElementById('displayName').value || 'Anonymous' });
   } catch (e) {
-    alert(e.message);
+    showError("Signup failed: " + e.message);
   }
 };
 
@@ -172,7 +203,7 @@ document.getElementById('logoutBtn').onclick = () => signOut(auth);
 // Post complaint
 document.getElementById('postBtn').onclick = async () => {
   const user = auth.currentUser;
-  if (!user) return alert("Log in first");
+  if (!user) return showError("Log in first");
 
   const postAs = document.querySelector('input[name="postAs"]:checked').value;
   const authorName = postAs === 'anonymous' ? 'Anonymous' : (user.displayName || user.email);
@@ -194,11 +225,11 @@ document.getElementById('postBtn').onclick = async () => {
     document.getElementById('title').value = '';
     document.getElementById('desc').value = '';
   } catch (e) {
-    alert("Error posting: " + e.message);
+    showError("Error posting: " + e.message);
   }
 };
 
-// Load posts - FIXED QUERY
+// Load posts
 const q = query(
   collection(db, "complaints"), 
   orderBy("createdAt", "desc")
@@ -206,6 +237,7 @@ const q = query(
 
 onSnapshot(q, 
   (snapshot) => {
+    document.getElementById('errorBanner').style.display = 'none';
     const postsDiv = document.getElementById('posts');
     const statusDiv = document.getElementById('status');
     postsDiv.innerHTML = '';
@@ -222,7 +254,6 @@ onSnapshot(q,
       const d = docSnap.data();
       const id = docSnap.id;
       
-      // Handle old posts where createdAt is null
       const date = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString() : "Just now";
       
       const commentsHTML = (d.comments || []).map(c => 
@@ -251,7 +282,7 @@ onSnapshot(q,
   },
   (error) => {
     console.error("Firestore error:", error);
-    document.getElementById('posts').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+    showError(`Firestore Error: ${error.code}\n${error.message}`);
     
     if (error.message.includes('index')) {
       document.getElementById('status').innerHTML = `<a href="${error.message.match(/https:\/\/.*/) }" target="_blank">Click here to create the missing index</a>`;
@@ -262,7 +293,7 @@ onSnapshot(q,
 // Like a post
 window.likePost = async (postId) => {
   const user = auth.currentUser;
-  if (!user) return alert("Log in to like posts");
+  if (!user) return showError("Log in to like posts");
   
   try {
     const postRef = doc(db, "complaints", postId);
@@ -278,7 +309,7 @@ window.likePost = async (postId) => {
       likedBy: arrayUnion(user.uid)
     });
   } catch (e) {
-    alert("Error liking: " + e.message);
+    showError("Error liking: " + e.message);
   }
 };
 
@@ -291,7 +322,7 @@ window.toggleComments = (postId) => {
 // Add comment
 window.addComment = async (postId) => {
   const user = auth.currentUser;
-  if (!user) return alert("Log in to comment");
+  if (!user) return showError("Log in to comment");
   
   const input = document.getElementById(`comment-input-${postId}`);
   const text = input.value.trim();
@@ -307,7 +338,7 @@ window.addComment = async (postId) => {
     });
     input.value = '';
   } catch (e) {
-    alert("Error commenting: " + e.message);
+    showError("Error commenting: " + e.message);
   }
 };
 </script>
