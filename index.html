@@ -13,7 +13,7 @@
       font-family: Arial, sans-serif;
       padding: 20px;
     }
-.container {
+   .container {
       max-width: 800px;
       margin: 0 auto;
       background: rgba(255, 255, 255, 0.95);
@@ -43,13 +43,13 @@
       font-weight: bold;
     }
     button:hover { opacity: 0.9; }
-.app-tabs {
+   .app-tabs {
       display: flex;
       gap: 10px;
       margin-bottom: 20px;
       border-bottom: 2px solid #ddd;
     }
-.app-tab {
+   .app-tab {
       padding: 12px 24px;
       cursor: pointer;
       border: none;
@@ -58,34 +58,34 @@
       font-weight: bold;
       color: #555;
     }
-.app-tab.active {
+   .app-tab.active {
       border-bottom: 3px solid #0066CC;
       color: #0066CC;
     }
-.app-section { display: none; }
-.app-section.active { display: block; }
-.hidden { display: none; }
+   .app-section { display: none; }
+   .app-section.active { display: block; }
+   .hidden { display: none; }
 
-.post-card {
+   .post-card {
       background: white;
       padding: 15px;
       margin: 10px 0;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-.post-card img {
+   .post-card img {
       max-width: 100%;
       margin-top: 10px;
       border-radius: 5px;
     }
-.post-actions {
+   .post-actions {
       display: flex;
       gap: 15px;
       margin-top: 10px;
       border-top: 1px solid #eee;
       padding-top: 10px;
     }
-.like-btn,.comment-btn {
+   .like-btn,.comment-btn {
       background: none;
       color: #0066CC;
       border: none;
@@ -94,8 +94,8 @@
       cursor: pointer;
       font-size: 14px;
     }
-.comment-section { margin-top: 10px; display: none; }
-.comment {
+   .comment-section { margin-top: 10px; display: none; }
+   .comment {
       background: #f5f5f5;
       padding: 8px;
       border-radius: 5px;
@@ -113,7 +113,7 @@
       font-size: 14px;
       white-space: pre-wrap;
     }
-.solution-box {
+   .solution-box {
       background: #e8f5e9;
       border-left: 4px solid #4caf50;
       padding: 10px;
@@ -121,13 +121,14 @@
       border-radius: 4px;
     }
 
-.mw-tabs { display: flex; gap: 10px; margin: 20px 0; border-bottom: 2px solid #eee; }
-.mw-tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; }
-.mw-tab.active { border-bottom: 3px solid #1a5d1a; font-weight: bold; color: #1a5d1a; }
-.job-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
-.mw-btn { background: #1a5d1a; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
-.mw-btn:hover { background: #134813; }
-.auth-box { max-width: 400px; margin: 20px auto; }
+   .mw-tabs { display: flex; gap: 10px; margin: 20px 0; border-bottom: 2px solid #eee; overflow-x: auto; }
+   .mw-tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; white-space: nowrap; }
+   .mw-tab.active { border-bottom: 3px solid #1a5d1a; font-weight: bold; color: #1a5d1a; }
+   .job-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+   .mw-btn { background: #1a5d1a; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+   .mw-btn:hover { background: #134813; }
+   .auth-box { max-width: 400px; margin: 20px auto; }
+   .job-count { font-size: 14px; color: #666; margin-left: 5px; }
   </style>
 </head>
 <body>
@@ -196,12 +197,7 @@
       <div id="mw-app-section" class="hidden">
         <p>Logged in as: <span id="mw-user-email"></span> <button onclick="mwSignOut()">Logout</button></p>
 
-        <div class="mw-tabs">
-          <button class="mw-tab" onclick="mwSwitchTab('public_works')">Public Works</button>
-          <button class="mw-tab active" onclick="mwSwitchTab('retail')">Retail Jobs</button>
-          <button class="mw-tab" onclick="mwSwitchTab('student_gig')">Student Gigs</button>
-          <button class="mw-tab" onclick="mwShowPostJob()">Post a Job</button>
-        </div>
+        <div class="mw-tabs" id="mw-tabs"></div>
 
         <div id="mw-jobs-list"></div>
 
@@ -210,8 +206,13 @@
           <input id="mw-job-title" placeholder="Job Title">
           <select id="mw-job-category">
             <option value="public_works">Public Works</option>
-            <option value="retail">Retail Jobs</option>
+            <option value="micro_project">Micro-Projects</option>
+            <option value="retail">Retail & Hospitality</option>
+            <option value="domestic">Domestic & Care</option>
             <option value="student_gig">Student Gigs</option>
+            <option value="skilled">Skilled Freelance</option>
+            <option value="farm">Farm & Agri</option>
+            <option value="rehab">Rehab-to-Work</option>
           </select>
           <input id="mw-job-location" placeholder="Location">
           <input id="mw-job-pay" type="number" placeholder="Pay Amount">
@@ -222,6 +223,7 @@
           </select>
           <textarea id="mw-job-desc" placeholder="Description"></textarea>
           <button class="mw-btn" onclick="mwCreateJob()">Post Job</button>
+          <button class="mw-btn" onclick="mwHidePostJob()" style="background:#666; margin-top:5px;">Cancel</button>
         </div>
       </div>
     </div>
@@ -244,7 +246,7 @@ window.switchApp = (app) => {
 /* ============ FIREBASE INIT ============ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment, arrayUnion, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
@@ -369,7 +371,7 @@ onSnapshot(q,
       const d = docSnap.data();
       const id = docSnap.id;
       const date = (d.createdAt && typeof d.createdAt.toDate === 'function')
- ? d.createdAt.toDate().toLocaleString()
+? d.createdAt.toDate().toLocaleString()
         : "Just now";
 
       const commentsHTML = (d.comments || []).map(c =>
@@ -378,7 +380,7 @@ onSnapshot(q,
 
       const fileHTML = d.fileURL?
         (d.fileURL.match(/\.(jpg|jpeg|png|gif|webp)$/i)
- ? `<img src="${d.fileURL}" alt="attachment">`
+? `<img src="${d.fileURL}" alt="attachment">`
           : `<a href="${d.fileURL}" target="_blank">View attachment</a>`)
         : '';
 
@@ -454,9 +456,21 @@ window.addComment = async (postId) => {
   }
 };
 
-/* ============ MZANSI WORKS - JOBS ============ */
-let mwCurrentTab = 'retail'
-let mwUnsubscribe = null
+/* ============ MZANSI WORKS - FIRESTORE ============ */
+const mwCategories = [
+  { id: 'public_works', name: 'Public Works' },
+  { id: 'micro_project', name: 'Micro-Projects' },
+  { id: 'retail', name: 'Retail & Hospitality' },
+  { id: 'domestic', name: 'Domestic & Care' },
+  { id: 'student_gig', name: 'Student Gigs' },
+  { id: 'skilled', name: 'Skilled Freelance' },
+  { id: 'farm', name: 'Farm & Agri' },
+  { id: 'rehab', name: 'Rehab-to-Work' }
+];
+
+let mwCurrentTab = 'public_works';
+let mwUnsubscribe = null;
+let mwJobCounts = {};
 
 onAuthStateChanged(auth, (user) => {
   if (user && document.getElementById('mw-app').classList.contains('active')) {
@@ -502,24 +516,62 @@ window.mwSignOut = async () => {
   if (mwUnsubscribe) mwUnsubscribe()
 }
 
-function mwShowApp(user) {
+async function mwShowApp(user) {
   document.getElementById('mw-auth-section').classList.add('hidden')
   document.getElementById('mw-app-section').classList.remove('hidden')
   document.getElementById('mw-user-email').innerText = user.email
-  mwLoadJobs(mwCurrentTab)
+
+  await mwLoadJobCounts();
+  mwBuildTabs();
+  mwLoadJobs(mwCurrentTab);
 }
 
-window.mwSwitchTab = (tab) => {
-  mwCurrentTab = tab
-  document.querySelectorAll('.mw-tab').forEach(t => t.classList.remove('active'))
-  event.target.classList.add('active')
-  document.getElementById('mw-post-job-form').classList.add('hidden')
-  mwLoadJobs(tab)
+function mwBuildTabs() {
+  const tabsDiv = document.getElementById('mw-tabs');
+  tabsDiv.innerHTML = '';
+
+  mwCategories.forEach((cat, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'mw-tab' + (cat.id === mwCurrentTab? ' active' : '');
+    btn.innerHTML = `${cat.name} <span class="job-count">(${mwJobCounts[cat.id] || 0})</span>`;
+    btn.onclick = () => mwSwitchTab(cat.id, btn);
+    tabsDiv.appendChild(btn);
+  });
+
+  const postBtn = document.createElement('button');
+  postBtn.className = 'mw-tab';
+  postBtn.textContent = '+ Post a Job';
+  postBtn.onclick = mwShowPostJob;
+  tabsDiv.appendChild(postBtn);
+}
+
+async function mwLoadJobCounts() {
+  const snapshot = await getDocs(collection(db, "jobs"));
+  mwJobCounts = {};
+
+  snapshot.forEach(doc => {
+    const job = doc.data();
+    if (job.status === 'open') {
+      mwJobCounts[job.category] = (mwJobCounts[job.category] || 0) + 1;
+    }
+  });
+}
+
+window.mwSwitchTab = (tab, btn) => {
+  mwCurrentTab = tab;
+  document.querySelectorAll('.mw-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mw-post-job-form').classList.add('hidden');
+  mwLoadJobs(tab);
 }
 
 window.mwShowPostJob = () => {
-  document.getElementById('mw-post-job-form').classList.remove('hidden')
-  document.getElementById('mw-jobs-list').innerHTML = ''
+  document.getElementById('mw-post-job-form').classList.remove('hidden');
+  document.getElementById('mw-jobs-list').innerHTML = '';
+}
+
+window.mwHidePostJob = () => {
+  document.getElementById('mw-post-job-form').classList.add('hidden');
 }
 
 window.mwCreateJob = async () => {
@@ -545,7 +597,14 @@ window.mwCreateJob = async () => {
     })
     alert('Job posted!')
     document.getElementById('mw-post-job-form').classList.add('hidden')
-    mwLoadJobs(mwCurrentTab)
+    document.getElementById('mw-job-title').value = '';
+    document.getElementById('mw-job-location').value = '';
+    document.getElementById('mw-job-pay').value = '';
+    document.getElementById('mw-job-desc').value = '';
+
+    await mwLoadJobCounts();
+    mwBuildTabs();
+    mwLoadJobs(mwCurrentTab);
   } catch (e) {
     alert("Error posting job: " + e.message)
   }
@@ -564,7 +623,7 @@ function mwLoadJobs(category) {
   mwUnsubscribe = onSnapshot(q, (snapshot) => {
     const jobsDiv = document.getElementById('mw-jobs-list')
     if (snapshot.empty) {
-      jobsDiv.innerHTML = '<p>No jobs yet. Be the first to post!</p>'
+      jobsDiv.innerHTML = '<p>No jobs yet in this category. Be the first to post!</p>'
       return
     }
 
